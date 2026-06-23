@@ -864,6 +864,12 @@ function majWatchlist(wl, indic, fonda) {
   try {
   var tab = document.getElementById('tab-wl');
   if (!tab) return;
+  // Gestion nouvelle structure { items, compteurs }
+  var compteursServ = null;
+  if (wl && wl.items) {
+    compteursServ = wl.compteurs;
+    wl = wl.items;
+  }
   indic = indic || {};
   fonda = fonda || {};
   if (wl.length === 0) {
@@ -875,40 +881,11 @@ function majWatchlist(wl, indic, fonda) {
   var mCls = 'y';
   if (peaData && peaData.contexte && peaData.contexte.signaux) mCls = signalClasse(peaData.contexte.signaux.global);
 
-  for (var i = 0; i < wl.length; i++) {
-    var ind = indic[wl[i].ticker] || {};
-    var sCls = signalClasse(ind.signalSectoriel);
-    var eCls = signalClasse(ind.signalEntreprise);
-    wl[i]._result = calculerResultat(mCls, sCls, eCls);
-  }
-
-  // Tri statique : poche → secteur
-  wl.sort(function(a, b) {
-    var ordP = function(p) {
-      var n = (p || '').toLowerCase();
-      if (n.indexOf('stable') >= 0) return 0;
-      if (n.indexOf('cycl') >= 0) return 1;
-      if (n.indexOf('grow') >= 0) return 2;
-      return 9;
-    };
-    var pa = ordP(a.poche), pb = ordP(b.poche);
-    if (pa !== pb) return pa - pb;
-    var sa = (a.secteur || '').toLowerCase();
-    var sb = (b.secteur || '').toLowerCase();
-    if (sa < sb) return -1;
-    if (sa > sb) return 1;
-    return 0;
-  });
-
   // Filtre actuel (mémorisé)
   if (typeof wlFiltreActuel === 'undefined') wlFiltreActuel = 'all';
 
   // Compter par catégorie
-  var compteurs = { all: wl.length, enter: 0, watch: 0, hunter: 0, neutral: 0, blocked: 0 };
-  for (var i = 0; i < wl.length; i++) {
-    var c = wl[i]._result ? wl[i]._result.cls : 'neutral';
-    if (compteurs[c] !== undefined) compteurs[c]++;
-  }
+  var compteurs = compteursServ || { all: wl.length, enter: 0, watch: 0, hunter: 0, neutral: 0, blocked: 0 };
 
   // En-tête
   var html = '<div class="wl-header"><span class="wl-count">🔭 <span>' + wl.length + '</span> valeurs</span>'
@@ -927,8 +904,8 @@ function majWatchlist(wl, indic, fonda) {
   // Liste filtrée
   html += '<div class="wl-list">';
   var affichees = 0;
-  for (var i = 0; i < wl.length; i++) {
-    var resultCls = wl[i]._result ? wl[i]._result.cls : 'neutral';
+  for ++) {
+    var resultCls = wl[i].recommandation ? wl[i].recommandation.cls : 'neutral';
     if (wlFiltreActuel !== 'all' && resultCls !== wlFiltreActuel) continue;
     html += genererCarteWL(wl[i], indic[wl[i].ticker] || {}, fonda[wl[i].ticker] || {});
     affichees++;
@@ -973,7 +950,7 @@ function genererCarteWL(v, ind, fon) {
   var eLbl = ind.signalEntreprise || '—';
   var mCls = 'y';
   if (peaData && peaData.contexte && peaData.contexte.signaux) mCls = signalClasse(peaData.contexte.signaux.global);
-  var result = calculerResultat(mCls, sCls, eCls);
+  var result = v.recommandation || { cls:'neutral', txt:'⚪ NEUTRE' };
 
   function barScore(label, val) {
     if (val === null || val === undefined || val === '') return '<div class="sitem"><span class="slbl">' + label + '</span><div class="srow"><div class="strack"><div class="sfill" style="width:0"></div></div><span class="sval" style="color:var(--dim)">—</span></div></div>';
@@ -1045,31 +1022,6 @@ function genererCarteWL(v, ind, fon) {
     + '<span class="sp ' + eCls + '" style="font-size:11px;padding:4px 10px"><span class="sd" style="background:var(--' + couleurVar(eCls) + ')"></span>' + signalEmoji(eCls) + ' ' + eLbl + '</span></div>'
     + '<div class="dtitle">Fondamentaux</div>' + fHtml
     + '</div></div>';
-}
-
-function calculerResultat(m, s, e) {
-  // Règle n°1 : Entreprise rouge → jamais d'achat
-  if (e === 'r') return {cls:'blocked', txt:'🚫 ÉVITER'};
-
-  // Entreprise verte
-  if (e === 'g') {
-    if (s === 'g' && m === 'g') return {cls:'enter',   txt:'🟢🟢🟢 ENTRER'};
-    if (s === 'g' && m === 'y') return {cls:'enter',   txt:'✅ ENTRER'};
-    if (s === 'g' && m === 'r') return {cls:'hunter',  txt:'🎯 CHASSEUR DE CREUX'};
-    if (s === 'y' && m === 'r') return {cls:'hunter',  txt:'🎯 CHASSEUR DE CREUX'};
-    if (s === 'y')              return {cls:'watch',   txt:'👁 SURVEILLER'};
-    if (s === 'r')              return {cls:'wait',    txt:'⏳ ATTENDRE'};
-  }
-
-  // Entreprise jaune
-  if (e === 'y') {
-    if (s === 'g' && m === 'g') return {cls:'watch',   txt:'👁 SURVEILLER'};
-    if (m === 'r')              return {cls:'wait',    txt:'⏳ ATTENDRE'};
-    if (s === 'r')              return {cls:'wait',    txt:'⏳ ATTENDRE'};
-    return                             {cls:'neutral', txt:'⚪ NEUTRE'};
-  }
-
-  return {cls:'neutral', txt:'⚪ NEUTRE'};
 }
 
 // ══════════════════════════════════════
