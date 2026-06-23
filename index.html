@@ -862,10 +862,6 @@ var wlFiltreActuel = 'all';
 
 function majWatchlist(wl, indic, fonda) {
   try {
-  // ✅ Nouvelle structure { items, compteurs }
-  if (wl && wl.items) {
-    wl = wl.items;
-  }  
   var tab = document.getElementById('tab-wl');
   if (!tab) return;
   indic = indic || {};
