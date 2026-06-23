@@ -442,7 +442,13 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 
 // ⬇️ TON URL DE DÉPLOIEMENT ICI ⬇️
 var API_URL = 'https://script.google.com/macros/s/AKfycbzB8nl78Q48lCJhdhXfssT31ImcrSg6Mi0b5YwKo2USrWMlcl5LVOb2KALE_OgxY6Pc/exec';
+var API_TOKEN = 'tJ9x!MjqS!aNrH&QF7RU';  // ⚠️ ton vrai token
 
+function urlAPI(params) {
+  var sep = (params && params.indexOf('?') === 0) ? '&' : '?';
+  return API_URL + (params || '') + sep + 'token=' + encodeURIComponent(API_TOKEN);
+}  
+  
 // Charger LightweightCharts dynamiquement
 var lwcReady = false;
 (function() {
@@ -538,7 +544,7 @@ function chargerDonnees() {
     peaData = JSON.parse(cache);
     rafraichirUI(peaData);
   }
-  fetch(API_URL)
+  fetch(urlAPI(''))
     .then(function(r) { return r.json(); })
     .then(function(data) {
       peaData = data;
@@ -602,7 +608,7 @@ function prechargerGraphiques() {
   tickers.forEach(function(tk) {
     var ck = tk + '_3mo';
     if (chartCache[ck]) return;
-    fetch(API_URL + '?action=historique&ticker=' + encodeURIComponent(tk) + '&range=3mo')
+    fetch(urlAPI('?action=historique&ticker=' + encodeURIComponent(tk) + '&range=3mo'))
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (data.data && data.data.length > 0) chartCache[ck] = data.data;
@@ -1121,7 +1127,7 @@ function chargerGraphiqueEmbed(ticker, id, range, type) {
   }
 
   container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-family:var(--mono);font-size:11px">⏳</div>';
-  fetch(API_URL + '?action=historique&ticker=' + encodeURIComponent(ticker) + '&range=' + range)
+  fetch(urlAPI('?action=historique&ticker=' + encodeURIComponent(ticker) + '&range=' + range))
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!data.data || data.data.length === 0) {
@@ -1413,7 +1419,7 @@ function envoyerTransaction() {
     note: document.getElementById('tx-note').value
   };
 
-  fetch(API_URL + '?action=transaction&payload=' + encodeURIComponent(JSON.stringify(payload)))
+  fetch(urlAPI('?action=transaction&payload=' + encodeURIComponent(JSON.stringify(payload))))
     .then(function(r) { return r.text(); })
     .then(function(t) {
       var data;
@@ -1559,7 +1565,7 @@ function rechercherWL(query) {
 
   wlSearchTimer = setTimeout(function() {
     container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--dim);font-family:var(--mono);font-size:11px">🔍 Recherche...</div>';
-    fetch(API_URL + '?action=recherche&q=' + encodeURIComponent(query))
+    fetch(urlAPI('?action=recherche&q=' + encodeURIComponent(query)))
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (!data.results || data.results.length === 0) {
@@ -1627,7 +1633,7 @@ function confirmerAjoutWL() {
     etfRef: ''
   };
 
-  fetch(API_URL + '?action=ajouter_valeur&payload=' + encodeURIComponent(JSON.stringify(payload)), {redirect:'follow'})
+  fetch(urlAPI('?action=ajouter_valeur&payload=' + encodeURIComponent(JSON.stringify(payload))), {redirect:'follow'})
     .then(function(r) { return r.text(); })
     .then(function(t) { try { return JSON.parse(t); } catch(e) { return {succes:true}; } })
     .then(function(data) {
@@ -1651,7 +1657,7 @@ function confirmerAjoutWL() {
 function supprimerValeur(ticker, nom) {
   if (!confirm('Supprimer ' + nom + ' (' + ticker + ') de la watchlist ?')) return;
 
-fetch(API_URL + '?action=supprimer_valeur&payload=' + encodeURIComponent(JSON.stringify({ticker: ticker})))
+fetch(urlAPI('?action=supprimer_valeur&payload=' + encodeURIComponent(JSON.stringify({ticker: ticker}))))
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (data.succes) {
@@ -1958,7 +1964,7 @@ return '<strong>' + dateLimite + '</strong>'
 function traiterSignal(ticker, date) {
   if (!confirm('Marquer ce signal comme traité ?')) return;
 
-  fetch(API_URL + '?action=traiter_signal&payload=' + encodeURIComponent(JSON.stringify({ticker: ticker, date: date})))
+  fetch(urlAPI('?action=traiter_signal&payload=' + encodeURIComponent(JSON.stringify({ticker: ticker, date: date}))))
     .then(function(r) { return r.text(); })
     .then(function(t) {
       try { var d = JSON.parse(t); } catch(e) {}
@@ -2228,7 +2234,7 @@ function envoyerPMI(dateISO) {
     nbsRetail: document.getElementById('nbsRetail').value
   };
 
-  fetch(API_URL + '?action=maj_pmi&payload=' + encodeURIComponent(JSON.stringify(payload)))
+  fetch(urlAPI('?action=maj_pmi&payload=' + encodeURIComponent(JSON.stringify(payload))))
     .then(function(r){ return r.json(); })
     .then(function(res){
       if (res && res.succes) {
@@ -2366,7 +2372,7 @@ function enregistrerPMI(dateISO) {
     nbs:    parseFloat(document.getElementById('p4').value),
   };
 
-  fetch(API_URL + '?action=maj_pmi&payload=' + encodeURIComponent(JSON.stringify(p)))
+  fetch(urlAPI('?action=maj_pmi&payload=' + encodeURIComponent(JSON.stringify(p))))
     .then(function(r){ return r.json(); })
     .then(function(res){
       // ✅ Marquer comme traité
