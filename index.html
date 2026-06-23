@@ -331,45 +331,11 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 </div>
 
 <!-- ─── ONGLET CALENDRIER ─── -->
-<div id="tab-cal" class="tab-panel">
-<div class="cal-header"><span class="cal-month">📅 Juin 2026</span><div class="cal-nav"><button onclick="calNav(-1)">◀</button><button onclick="calNav(1)">▶</button></div></div>
-<div class="cal-grid">
-<div class="cal-dow">LUN</div><div class="cal-dow">MAR</div><div class="cal-dow">MER</div><div class="cal-dow">JEU</div><div class="cal-dow">VEN</div><div class="cal-dow">SAM</div><div class="cal-dow">DIM</div>
-<div class="cal-cell past"><span class="cal-num">1</span></div>
-<div class="cal-cell past"><span class="cal-num">2</span></div>
-<div class="cal-cell past"><span class="cal-num">3</span></div>
-<div class="cal-cell past"><span class="cal-num">4</span></div>
-<div class="cal-cell past"><span class="cal-num">5</span></div>
-<div class="cal-cell past"><span class="cal-num">6</span></div>
-<div class="cal-cell past"><span class="cal-num">7</span></div>
-<div class="cal-cell past"><span class="cal-num">8</span></div>
-<div class="cal-cell past"><span class="cal-num">9</span></div>
-<div class="cal-cell past"><span class="cal-num">10</span></div>
-<div class="cal-cell past"><span class="cal-num">11</span></div>
-<div class="cal-cell past has-ev" onclick="calSelect(12)"><span class="cal-num">12</span><div class="cal-dots"><div class="cal-dot bce"></div></div></div>
-<div class="cal-cell today"><span class="cal-num">13</span></div>
-<div class="cal-cell"><span class="cal-num">14</span></div>
-<div class="cal-cell"><span class="cal-num">15</span></div>
-<div class="cal-cell has-ev" onclick="calSelect(16)"><span class="cal-num">16</span><div class="cal-dots"><div class="cal-dot pmi"></div></div></div>
-<div class="cal-cell"><span class="cal-num">17</span></div>
-<div class="cal-cell"><span class="cal-num">18</span></div>
-<div class="cal-cell has-ev" onclick="calSelect(19)"><span class="cal-num">19</span><div class="cal-dots"><div class="cal-dot res"></div></div></div>
-<div class="cal-cell"><span class="cal-num">20</span></div>
-<div class="cal-cell"><span class="cal-num">21</span></div>
-<div class="cal-cell"><span class="cal-num">22</span></div>
-<div class="cal-cell"><span class="cal-num">23</span></div>
-<div class="cal-cell has-ev" onclick="calSelect(24)"><span class="cal-num">24</span><div class="cal-dots"><div class="cal-dot divi"></div></div></div>
-<div class="cal-cell"><span class="cal-num">25</span></div>
-<div class="cal-cell has-ev" onclick="calSelect(26)"><span class="cal-num">26</span><div class="cal-dots"><div class="cal-dot res"></div></div></div>
-<div class="cal-cell"><span class="cal-num">27</span></div>
-<div class="cal-cell"><span class="cal-num">28</span></div>
-<div class="cal-cell"><span class="cal-num">29</span></div>
-<div class="cal-cell"><span class="cal-num">30</span></div>
-</div>
-<div class="cal-legend"><div class="cal-legend-item"><div class="cal-dot res"></div>Résultats</div><div class="cal-legend-item"><div class="cal-dot divi"></div>Dividendes</div><div class="cal-legend-item"><div class="cal-dot bce"></div>BCE</div><div class="cal-legend-item"><div class="cal-dot pmi"></div>PMI</div></div>
-<div class="cal-detail" id="cal-detail"></div>
-</div>
 
+<div id="tab-cal" class="tab-panel">
+  <div style="display:flex;align-items:center;justify-content:center;min-height:40vh;color:var(--dim);font-family:var(--mono);font-size:13px">⏳ Chargement...</div>
+</div>
+  
 <!-- ─── ONGLET ACTUALITÉS ─── -->
 
 </div><!-- /main -->
@@ -1453,44 +1419,7 @@ function filterSig(c, b) {
   });
 }
 function toggleSigHistory() { document.getElementById('sig-history').classList.toggle('open'); }
-function filterNews(c, b) {
-  document.querySelectorAll('.news-filters .sig-filter').forEach(function(f){f.classList.remove('active');});
-  b.classList.add('active');
-  document.querySelectorAll('.news-card').forEach(function(card){
-    card.style.display = (c === 'all' || card.dataset.ncat === c) ? '' : 'none';
-  });
-}
-
-var calEvData = {
-  12:[{t:"bce",tp:"🏛️ BCE",n:"Réunion BCE",d:"Politique monétaire · 14h45"}],
-  16:[{t:"pmi",tp:"📋 PMI",n:"PMI Flash Zone Euro",d:"Préliminaire juin · 10h00"}],
-  19:[{t:"res",tp:"📊 Résultats",n:"Dassault Aviation",d:"AM.PA · T2 2026"}],
-  24:[{t:"divi",tp:"💰 Dividende",n:"Air Liquide",d:"AI.PA · 3,20 €/act"}],
-  26:[{t:"res",tp:"📊 Résultats",n:"LVMH",d:"MC.PA · CA T2 2026"}]
-};
-var calColors = {res:"var(--blue)",divi:"var(--purple)",bce:"var(--yellow)",pmi:"var(--green)"};
-
-function calSelect(day) {
-  var p = document.getElementById('cal-detail');
-  var evs = calEvData[day];
-  if (!evs) { if(p) p.className = 'cal-detail'; return; }
-  document.querySelectorAll('.cal-cell').forEach(function(c){c.classList.remove('sel');});
-  var jours = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
-  var dn = jours[new Date(2026,5,day).getDay()];
-  var h = '<div class="cal-detail-header">' + dn + ' ' + day + ' juin 2026</div>';
-  for (var i = 0; i < evs.length; i++) {
-    var e = evs[i];
-    h += '<div class="cal-ev"><div class="cal-ev-dot" style="background:' + calColors[e.t] + '"></div><div class="cal-ev-body"><span class="cal-ev-type">' + e.tp + '</span><span class="cal-ev-name">' + e.n + '</span><span class="cal-ev-info">' + e.d + '</span></div></div>';
-  }
-  p.innerHTML = h;
-  p.className = 'cal-detail open';
-  document.querySelectorAll('.cal-cell.has-ev').forEach(function(c){
-    var num = c.querySelector('.cal-num');
-    if (num && parseInt(num.textContent) === day) c.classList.add('sel');
-  });
-}
-function calNav(d) {}
-
+  
 // Auto-scroll infini du bandeau (compatible mobile)
 (function() {
   var band = document.getElementById('top-band');
