@@ -1665,41 +1665,12 @@ traites.sort(function(a, b) {
 
 function genererCarteSig(sig, traite) {
   var type = (sig.type || '').toLowerCase();
-  var action = (sig.actionRecommandee || '').toLowerCase();
 
-  // Catégorie pour filtre
-  var cat = 'pos';
-  if (type.indexOf('macd') >= 0 || type.indexOf('opportun') >= 0 ||
-      type.indexOf('dividende') >= 0 || type.indexOf('entrée') >= 0 ||
-      type.indexOf('correction') >= 0) cat = 'opp';
-
-  // Couleur barre latérale
-  var barCls = 'sig-y';
-  if (type.indexOf('stop') >= 0 && (type.indexOf('déclen') >= 0 || type.indexOf('atteint') >= 0)) barCls = 'sig-r';
-  else if (type.indexOf('sortie auto') >= 0 || type.indexOf('133') >= 0) barCls = 'sig-g';
-  else if (type.indexOf('date limite') >= 0) barCls = 'sig-r';
-  else if (type.indexOf('objectif') >= 0) barCls = 'sig-g';
-  else if (type.indexOf('dividende') >= 0) barCls = 'sig-b';
-  else if (type.indexOf('entrée') >= 0) barCls = 'sig-g';
-  else if (type.indexOf('correction') >= 0) barCls = 'sig-b';
-
-  // Badge
-  var badgeCls = 'y';
-  if (barCls === 'sig-r') badgeCls = 'r';
-  else if (barCls === 'sig-g') badgeCls = 'g';
-  else if (barCls === 'sig-b') badgeCls = 'b';
-
-  // Icône badge
-  var badgeIcon = sig.type || '—';
-  if (type.indexOf('stop') >= 0 && type.indexOf('approche') >= 0) badgeIcon = '⚠️ Approche stop loss';
-  else if (type.indexOf('stop') >= 0) badgeIcon = '🔴 Stop loss déclenché';
-  else if (type.indexOf('sortie auto') >= 0 || type.indexOf('133') >= 0) badgeIcon = '🟢 Sortie automatique 133%';
-  else if (type.indexOf('date limite') >= 0) badgeIcon = '🔴 Date limite dépassée';
-  else if (type.indexOf('dividende') >= 0) badgeIcon = '💰 Dividende détaché';
-  else if (type.indexOf('entrée') >= 0) badgeIcon = '🟢 Signal d\'entrée';
-  else if (type.indexOf('objectif') >= 0) badgeIcon = '🎯 Objectif atteint';
-  else if (type.indexOf('correction') >= 0) badgeIcon = '📉 Correction sectorielle';
-  else if (type.indexOf('macd') >= 0) badgeIcon = '📈 MACD';
+  // ✅ Données enrichies par l'API
+  var cat       = sig.categorie  || 'pos';
+  var barCls    = sig.cssClass   || 'sig-y';
+  var badgeCls  = sig.badgeClass || 'y';
+  var badgeIcon = sig.badgeIcon  || sig.type || '—';
 
   // Date formatée
   var dateStr = sig.date || '';
@@ -1712,7 +1683,7 @@ function genererCarteSig(sig, traite) {
   }
 
   // Détail selon le type (ligne 4)
-  var detail = construireDetailSig(sig);
+  var detail = sig.detail || '—';
 
   var sn = (sig.nom || '').replace(/'/g, '');
   var dateISO = sig.date || '';
@@ -1747,96 +1718,6 @@ function genererCarteSig(sig, traite) {
     + '<div class="sig-action-row"><span class="sig-action-lbl">' + (sig.actionRecommandee || '') + '</span>'
     + actionBtns + '</div>'
     + '</div>';
-}
-
-function construireDetailSig(sig) {
-  var type = (sig.type || '').toLowerCase();
-  var vd = sig.valeurDeclenchante || '';
-  var ref = sig.reference || '';
-
-  // Récupérer les données du portefeuille pour ce ticker
-  var cours = '—', pru = '—', stopLoss = '—', objectif = '—';
-  if (peaData && peaData.portefeuille && peaData.portefeuille.positions) {
-    for (var i = 0; i < peaData.portefeuille.positions.length; i++) {
-      var pos = peaData.portefeuille.positions[i];
-      if (pos.ticker === sig.ticker) {
-        cours = pos.cours ? fmt(pos.cours, 2) + ' €' : '—';
-        pru = pos.pru ? fmt(pos.pru, 2) + ' €' : '—';
-        stopLoss = pos.stopLoss ? fmt(pos.stopLoss, 2) + ' €' : '—';
-        objectif = pos.objectif ? fmt(pos.objectif, 2) + ' €' : '—';
-        break;
-      }
-    }
-  }
-
-  // Approche stop loss / Stop loss déclenché
-  if (type.indexOf('stop') >= 0) {
-    return '<strong>Stop ' + stopLoss + '</strong>'
-      + ' <span style="color:var(--muted)">· Cours ' + cours + ' · PRU ' + pru + '</span>';
-  }
-
-  // Sortie automatique 133% / Objectif atteint
-  if (type.indexOf('sortie auto') >= 0 || type.indexOf('133') >= 0 || type.indexOf('objectif') >= 0) {
-    return '<strong>Objectif ' + objectif + '</strong>'
-      + ' <span style="color:var(--muted)">· Cours ' + cours + ' · PRU ' + pru + ' · Stop ' + stopLoss + '</span>';
-  }
-
-  // Date limite dépassée
-  if (type.indexOf('date limite') >= 0) {
-    var dateLimite = vd || ref;
-
-// Si c'est une ISO date → reformat JJ/MM/AAAA
-if (dateLimite && dateLimite.indexOf('T') >= 0) {
-  var d = new Date(dateLimite);
-  if (!isNaN(d.getTime())) {
-    dateLimite =
-      String(d.getDate()).padStart(2, '0') + '/' +
-      String(d.getMonth() + 1).padStart(2, '0') + '/' +
-      d.getFullYear();
-  }
-}
-
-return '<strong>' + dateLimite + '</strong>'
-      + ' <span style="color:var(--muted)">· Cours ' + cours + ' · PRU ' + pru + ' · Objectif ' + objectif + '</span>';
-  }
-
-  // Dividende détaché
-  if (type.indexOf('dividende') >= 0) {
-    var divAction = vd || '—';
-    var nbActions = 0;
-    var divTotal = '—';
-    if (peaData && peaData.portefeuille && peaData.portefeuille.positions) {
-      for (var i = 0; i < peaData.portefeuille.positions.length; i++) {
-        var p = peaData.portefeuille.positions[i];
-        if (p.ticker === sig.ticker) {
-          nbActions = p.quantite || 0;
-          var dv = parseFloat(divAction.toString().replace(',', '.').replace(/[^0-9.\-]/g, ''));
-          if (!isNaN(dv) && nbActions) divTotal = fmt(dv * nbActions, 2) + ' €';
-          break;
-        }
-      }
-    }
-    return '<strong>Dividende/action ' + divAction + ' €</strong>'
-      + ' <span style="color:var(--muted)">· Dividende total ' + divTotal + ' · Cours ' + cours + '</span>';
-  }
-
-  // Signal d'entrée
-  if (type.indexOf('entrée') >= 0) {
-    return '<strong>' + (vd || 'Conditions réunies') + '</strong>'
-      + (ref ? ' <span style="color:var(--muted)">· ' + ref + '</span>' : '');
-  }
-
-  // Correction sectorielle
-  if (type.indexOf('correction') >= 0) {
-    return (vd ? '<strong>' + vd + '</strong>' : '')
-      + (ref ? ' <span style="color:var(--muted)">· ' + ref + '</span>' : '');
-  }
-
-  // Défaut
-  var html = '';
-  if (vd) html += '<strong>' + vd + '</strong>';
-  if (ref) html += ' <span style="color:var(--muted)">· ' + ref + '</span>';
-  return html || '—';
 }
 
 // --- Traiter un signal ---
