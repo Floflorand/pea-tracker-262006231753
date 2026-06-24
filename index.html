@@ -373,18 +373,16 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 <div id="wl-search-results"></div>
 <div id="wl-add-form" style="display:none">
 <div class="tx-subtitle" id="wl-add-titre" style="font-size:14px;font-weight:700;color:var(--text)"></div>
-<div class="tx-row"><div class="tx-field"><span class="tx-label">Secteur</span><select class="tx-input" id="wl-secteur">
+<div class="tx-row"><div class="tx-field"><span class="tx-label">Secteur</span>
+<select class="tx-input" id="wl-secteur">
 <option value="">— Choisir —</option>
-<option>Aéronautique</option><option>Automobile</option><option>Banque</option><option>BTP</option>
-<option>Chimie</option><option>Cosmétiques</option><option>Cybersécurité</option><option>Défense</option>
-<option>Énergie</option><option>Gaz industriels</option><option>Immobilier</option><option>IT / Services numériques</option>
-<option>Luxe</option><option>Médias</option><option>Pharmacie</option><option>Santé</option>
-<option>Semi-conducteurs</option><option>Télécoms</option><option>Transport</option><option>Utilities</option>
-</select></div></div>
-<div class="tx-row"><div class="tx-field"><span class="tx-label">Poche</span><select class="tx-input" id="wl-poche">
+</select>
+</div></div>
+<div class="tx-row"><div class="tx-field"><span class="tx-label">Poche</span>
+<select class="tx-input" id="wl-poche">
 <option value="">— Choisir —</option>
-<option>Stable</option><option>Cyclique</option><option>Growth</option>
-</select></div></div>
+</select>
+</div></div>
 <div class="tx-row"><div class="tx-field"><span class="tx-label">PEA-éligible</span><select class="tx-input" id="wl-pea">
 <option>OUI</option><option>NON</option>
 </select></div></div>
@@ -531,6 +529,7 @@ function rafraichirUI(data) {
   if (data.portefeuille) majPortefeuille(data.portefeuille, data.indicateurs, data.fondamentaux);
   if (data.watchlist) majWatchlist(data.watchlist, data.indicateurs, data.fondamentaux);
   if (data.signaux) majSignaux(data.signaux);
+  if (data.referentiels) peuplerReferentiels();
   if (data.calendrier) {
   majCalendrierTest(data.calendrier);
   majBadgeCalendrier(data.calendrier);
@@ -1426,6 +1425,31 @@ function toggleSigHistory() { document.getElementById('sig-history').classList.t
 
 var wlSelectedResult = null;
 var wlSearchTimer = null;
+
+function peuplerReferentiels() {
+  if (!peaData || !peaData.referentiels) return;
+  var refs = peaData.referentiels;
+
+  // Secteurs
+  var selS = document.getElementById('wl-secteur');
+  if (selS && refs.secteurs && refs.secteurs.length) {
+    var htmlS = '<option value="">— Choisir —</option>';
+    for (var i = 0; i < refs.secteurs.length; i++) {
+      htmlS += '<option>' + refs.secteurs[i] + '</option>';
+    }
+    selS.innerHTML = htmlS;
+  }
+
+  // Poches
+  var selP = document.getElementById('wl-poche');
+  if (selP && refs.poches && refs.poches.length) {
+    var htmlP = '<option value="">— Choisir —</option>';
+    for (var i = 0; i < refs.poches.length; i++) {
+      htmlP += '<option>' + refs.poches[i] + '</option>';
+    }
+    selP.innerHTML = htmlP;
+  }
+}
 
 function ouvrirAjoutWL() {
   document.getElementById('wl-search').value = '';
