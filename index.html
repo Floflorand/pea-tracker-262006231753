@@ -734,16 +734,7 @@ function majPortefeuille(ptf, indic, fonda) {
 
   // Allocation
   var couleursPoche = {'Stable':'s','Cyclique':'c','Growth':'g'};
-  var pochesTri = (ptf.poches || []).sort(function(a, b) {
-    function rang(nom) {
-      var n = (nom || '').toLowerCase();
-      if (n.indexOf('stable') >= 0) return 0;
-      if (n.indexOf('cycl') >= 0) return 1;
-      if (n.indexOf('grow') >= 0) return 2;
-      return 9;
-    }
-    return rang(a.nom) - rang(b.nom);
-  });
+    var pochesTri = ptf.poches || [];
   html += '<div class="alloc-wrap"><div class="alloc-title">Répartition des poches</div><div class="alloc-track">';
   for (var p = 0; p < pochesTri.length; p++) {
     var pc = couleursPoche[pochesTri[p].nom] || 's';
@@ -757,15 +748,6 @@ function majPortefeuille(ptf, indic, fonda) {
   }
   html += '</div></div>';
 
-  // Normaliser les poches
-  for (var np = 0; np < ptf.positions.length; np++) {
-    var pp = (ptf.positions[np].poche || '').toString().trim().toLowerCase();
-    if (pp.indexOf('stable') >= 0) ptf.positions[np].poche = 'Stable';
-    else if (pp.indexOf('cycl') >= 0) ptf.positions[np].poche = 'Cyclique';
-    else if (pp.indexOf('grow') >= 0) ptf.positions[np].poche = 'Growth';
-  }
-  // Filtrer les positions sans investissement
-  ptf.positions = ptf.positions.filter(function(p) { return p.investi && p.investi > 0; });
   // Positions par poche
   var pochesOrd = ['Stable', 'Cyclique', 'Growth'];
   for (var pi = 0; pi < pochesOrd.length; pi++) {
@@ -800,8 +782,8 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
   var varSymb = varC === 'up' ? '▲+' : '▼−';
   var varVal = (Math.abs(parseFloat(ind.variationJour) || 0) * 100).toFixed(1);
   var sc = pos.pvPct >= 0 ? 'sb' : 'ss';
-  var sCls = signalClasse(ind.signalSectoriel);
-  var eCls = signalClasse(ind.signalEntreprise);
+  var sCls = pos.feuSecteur || signalClasse(ind.signalSectoriel);
+  var eCls = pos.feuEntreprise || signalClasse(ind.signalEntreprise);
   var sLbl = ind.signalSectoriel || '—';
   var eLbl = ind.signalEntreprise || '—';
 
