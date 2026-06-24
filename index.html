@@ -904,7 +904,7 @@ function majWatchlist(wl, indic, fonda) {
   // Liste filtrée
   html += '<div class="wl-list">';
   var affichees = 0;
-  for ++) {
+  for (var i = 0; i < wl.length; i++) {
     var resultCls = wl[i].recommandation ? wl[i].recommandation.cls : 'neutral';
     if (wlFiltreActuel !== 'all' && resultCls !== wlFiltreActuel) continue;
     html += genererCarteWL(wl[i], indic[wl[i].ticker] || {}, fonda[wl[i].ticker] || {});
