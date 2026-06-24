@@ -408,7 +408,11 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 // ⬇️ TON URL DE DÉPLOIEMENT ICI ⬇️
 var API_URL = 'https://script.google.com/macros/s/AKfycbzB8nl78Q48lCJhdhXfssT31ImcrSg6Mi0b5YwKo2USrWMlcl5LVOb2KALE_OgxY6Pc/exec';
 var API_TOKEN = 'tJ9x!MjqS!aNrH&QF7RU';  // ⚠️ ton vrai token
-
+// ── États UI à préserver lors du refresh ──
+var currentTab = 'ptf';      // onglet actif (ptf/wl/sig/cal)
+var wlModalOuvert = false;   // modal "Ajouter une valeur"
+var txModalOuvert = false;   // modal Transaction
+  
 function urlAPI(params) {
   var sep = (params && params.indexOf('?') === 0) ? '&' : '?';
   return API_URL + (params || '') + sep + 'token=' + encodeURIComponent(API_TOKEN);
@@ -456,6 +460,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── NAVIGATION ONGLETS ────────────────
 function switchTab(id, btn) {
+  currentTab = id;
   document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
   document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
   document.getElementById('tab-' + id).classList.add('active');
@@ -553,6 +558,25 @@ function rafraichirUI(data) {
         }
       }
     }
+  }
+  // ── Restaurer l'état UI ──
+  // Onglet actif (sauf au tout premier chargement)
+  var btnActuel = document.querySelector('.nav-btn.active');
+  if (btnActuel) {
+    var idActif = btnActuel.querySelector('.nav-label');
+    // On ne touche à rien : switchTab a déjà fait son boulot
+  }
+
+  // Modal "Ajouter une valeur"
+  if (wlModalOuvert) {
+    var ov = document.getElementById('wl-add-overlay');
+    if (ov && !ov.classList.contains('open')) ov.classList.add('open');
+  }
+
+  // Modal Transaction
+  if (txModalOuvert) {
+    var tov = document.getElementById('tx-overlay');
+    if (tov && !tov.classList.contains('open')) tov.classList.add('open');
   }
 }
 
@@ -1233,7 +1257,8 @@ function openTx(type, ticker, name) {
     }
   }
   cyclo.style.display = showCyclo ? '' : 'none';
-
+  txModalOuvert = true;
+  
   document.getElementById('tx-overlay').classList.add('open');
 }
 
@@ -1270,6 +1295,7 @@ function positionExiste(ticker) {
 
 function closeTx() {
   document.getElementById('tx-overlay').classList.remove('open');
+  txModalOuvert = false;
 }
 
 function trouverPoche(ticker) {
@@ -1458,10 +1484,12 @@ function ouvrirAjoutWL() {
   wlSelectedResult = null;
   document.getElementById('wl-add-overlay').classList.add('open');
   setTimeout(function() { document.getElementById('wl-search').focus(); }, 300);
+  wlModalOuvert = true;
 }
 
 function fermerAjoutWL() {
   document.getElementById('wl-add-overlay').classList.remove('open');
+  wlModalOuvert = false;
 }
 
 function rechercherWL(query) {
