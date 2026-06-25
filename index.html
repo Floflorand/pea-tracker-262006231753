@@ -1292,10 +1292,11 @@ function trouverPoche(ticker) {
   }
   // Chercher dans watchlist
   if (peaData.watchlist) {
-    for (var i = 0; i < peaData.watchlist.length; i++) {
-      if (peaData.watchlist[i].ticker === ticker) return peaData.watchlist[i].poche;
-    }
+  var wlItems = peaData.watchlist.items || peaData.watchlist;
+  for (var i = 0; i < wlItems.length; i++) {
+    if (wlItems[i].ticker === ticker) return wlItems[i].poche;
   }
+}
   return '';
 }
 
