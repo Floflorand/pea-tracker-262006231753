@@ -896,18 +896,19 @@ function majWatchlist(wl, indic, fonda) {
   var compteurs = compteursServ || { all: wl.length, enter: 0, watch: 0, hunter: 0, neutral: 0, blocked: 0 };
 
   // En-tête
-  var html = '<div class="wl-header"><span class="wl-count">🔭 <span>' + wl.length + '</span> valeurs</span>'
-    + '<button class="btn-add" onclick="ouvrirAjoutWL()">＋ Ajouter</button></div>';
-
-  // Barre de filtres
-  html += '<div class="wl-filter-bar">'
-    + btnFiltreWL('all',     'Tous',         compteurs.all)
-    + btnFiltreWL('enter',   '🟢 Entrer',    compteurs.enter)
-    + btnFiltreWL('hunter',  '🎯 Chasseur',  compteurs.hunter)
-    + btnFiltreWL('watch',   '👁 Surveiller', compteurs.watch)
-    + btnFiltreWL('neutral', '⚪ Neutre',    compteurs.neutral)
-    + btnFiltreWL('blocked', '🚫 Éviter',    compteurs.blocked)
-    + '</div>';
+  var html = '<div id="wl-sticky-header" style="position:sticky;top:calc(var(--band-h) * 1.5 + 3px);z-index:100;background:var(--bg);padding:8px 0 10px">'
+  + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
+  + '<span class="wl-count">🔭 <span>' + wl.length + '</span> valeurs</span>'
+  + '<select id="wl-filter-select" onchange="filtrerWL(this.value)" style="flex:1;max-width:180px;background:var(--bg2);border:1px solid var(--border-dim);border-radius:var(--r-sm);color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px">'
+  + '<option value="all">Tous (' + compteurs.all + ')</option>'
+  + '<option value="enter">🟢 Entrer (' + compteurs.enter + ')</option>'
+  + '<option value="hunter">🎯 Chasseur (' + compteurs.hunter + ')</option>'
+  + '<option value="watch">👁 Surveiller (' + compteurs.watch + ')</option>'
+  + '<option value="neutral">⚪ Neutre (' + compteurs.neutral + ')</option>'
+  + '<option value="blocked">🚫 Éviter (' + compteurs.blocked + ')</option>'
+  + '</select>'
+  + '<button class="btn-add" onclick="ouvrirAjoutWL()">＋ Ajouter</button>'
+  + '</div></div>';
 
   // Liste filtrée
   html += '<div class="wl-list">';
@@ -941,6 +942,8 @@ function filtrerWL(cle) {
   if (peaData && peaData.watchlist) {
     majWatchlist(peaData.watchlist, peaData.indicateurs, peaData.fondamentaux);
   }
+  var sel = document.getElementById('wl-filter-select');
+  if (sel) sel.value = cle;
 }
 
 function genererCarteWL(v, ind, fon) {
