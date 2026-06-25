@@ -74,6 +74,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .vc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;opacity:0;transition:opacity .2s;border-radius:0}
 .vc.open::before{opacity:1}
 .vc.sb::before{background:var(--green)}.vc.ss::before{background:var(--red)}.vc.sn::before{background:var(--yellow)}
+.vc.pocket-s{background:rgba(88,166,255,.05);border-color:rgba(88,166,255,.15)}
+.vc.pocket-c{background:rgba(210,153,34,.05);border-color:rgba(210,153,34,.15)}
+.vc.pocket-g{background:rgba(188,140,255,.05);border-color:rgba(188,140,255,.15)}
 .vr1{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:5px}
 .vl{display:flex;flex-direction:column;gap:2px}
 .vname{font-size:14px;font-weight:600;color:var(--text)}
@@ -978,7 +981,8 @@ function genererCarteWL(v, ind, fon) {
     return '<span class="tl-pill" style="background:var(--bg3);color:var(--dim);border:1px solid var(--border-dim)">—</span>';
   }
 
-  return '<div class="vc ' + acc + '" id="c-' + id + '" onclick="toggleCard(\'c-' + id + '\')">'
+  var pCls = (v.poche||'').toLowerCase().indexOf('stable')>=0?'pocket-s':(v.poche||'').toLowerCase().indexOf('cycl')>=0?'pocket-c':(v.poche||'').toLowerCase().indexOf('grow')>=0?'pocket-g':'';
+  return '<div class="vc ' + acc + ' ' + pCls + '" id="c-' + id + '" onclick="toggleCard(\'c-' + id + '\')">'
     + '<div class="vr1"><div class="vl"><span class="vname">' + v.nom + '</span>'
     + '<span class="vtick">' + v.ticker + ' · ' + (v.secteur || '')
     + (function() {
