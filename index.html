@@ -1226,19 +1226,25 @@ function openTx(type, ticker, name) {
       var durField = document.getElementById('tx-duree');
       var dernierObj = trouverDernierObjectif(ticker);
 
-      if (dernierObj.locked && dernierObj.objectif) {
-        objField.value = dernierObj.objectif;
+      if (dernierObj.locked) {
+        objField.value = dernierObj.objectif || '';
         objField.readOnly = true;
         objField.style.opacity = '0.6';
-        objField.title = 'Objectif figé au dernier achat';
+        objField.title = 'Objectif figé au premier achat';
+        durField.value = dernierObj.duree || '';
+        durField.readOnly = true;
+        durField.style.opacity = '0.6';
+        durField.title = 'Durée figée au premier achat';
       } else {
-        objField.value = dernierObj.objectif || '';
+        objField.value = '';
         objField.readOnly = false;
         objField.style.opacity = '1';
         objField.title = '';
+        durField.value = '';
+        durField.readOnly = false;
+        durField.style.opacity = '1';
+        durField.title = '';
       }
-      durField.value = dernierObj.duree || '';
-    }
   }
   cyclo.style.display = showCyclo ? '' : 'none';
   txModalOuvert = true;
