@@ -16,7 +16,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{height:100%;background:var(--bg)}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100%;overflow:auto;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
-#tension-bar{position:fixed;top:0;left:0;right:0;height:6px;z-index:300;background:var(--green);transition:background .8s ease}
+#tension-bar{position:fixed;top:0;left:0;right:0;height:3px;z-index:300;background:var(--green);transition:background .8s ease}
 #tension-bar.neutral{background:var(--yellow)}
 #tension-bar.danger{background:var(--red);animation:tbar-pulse 2.2s ease-in-out infinite}
 @keyframes tbar-pulse{0%,100%{opacity:1}50%{opacity:.35}}
