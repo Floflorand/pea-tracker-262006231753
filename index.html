@@ -304,7 +304,18 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 
 <!-- ─── ONGLET WATCHLIST ─── -->
 <div id="tab-wl" class="tab-panel">
-  <div style="display:flex;align-items:center;justify-content:center;min-height:40vh;color:var(--dim);font-family:var(--mono);font-size:13px">⏳ Chargement...</div>
+  <div id="wl-sticky-header" style="position:sticky;top:0;z-index:100;background:var(--bg);padding:8px 0 10px;display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <span class="wl-count">🔭 <span id="wl-count-val">0</span> valeurs</span>
+      <select id="wl-filter-select" onchange="filtrerWL(this.value)" style="flex:1;max-width:180px;background:var(--bg2);border:1px solid var(--border-dim);border-radius:var(--r-sm);color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px">
+        <option value="all">Tous</option>
+      </select>
+      <button class="btn-add" onclick="ouvrirAjoutWL()">＋ Ajouter</button>
+    </div>
+  </div>
+  <div id="wl-list-container">
+    <div style="display:flex;align-items:center;justify-content:center;min-height:40vh;color:var(--dim);font-family:var(--mono);font-size:13px">⏳ Chargement...</div>
+  </div>
 </div>
 
 <!-- ─── ONGLET SIGNAUX ─── -->
@@ -852,65 +863,65 @@ var wlFiltreActuel = 'all';
 
 function majWatchlist(wl, indic, fonda) {
   try {
-  var tab = document.getElementById('tab-wl');
-  if (!tab) return;
-  // Gestion nouvelle structure { items, compteurs }
-  var compteursServ = null;
-  if (wl && wl.items) {
-    compteursServ = wl.compteurs;
-    wl = wl.items;
-  }
-  indic = indic || {};
-  fonda = fonda || {};
-  if (wl.length === 0) {
-    tab.innerHTML = '<div class="empty-tab"><span class="e-icon">🔭</span><span class="e-title">Watchlist vide</span></div>';
-    return;
-  }
+    var container = document.getElementById('wl-list-container');
+    var header = document.getElementById('wl-sticky-header');
+    var countEl = document.getElementById('wl-count-val');
+    var sel = document.getElementById('wl-filter-select');
+    if (!container) return;
 
-  // Calculer le résultat pour chaque valeur
-  var mCls = 'y';
-  if (peaData && peaData.contexte && peaData.contexte.signaux) mCls = signalClasse(peaData.contexte.signaux.global);
+    var compteursServ = null;
+    if (wl && wl.items) {
+      compteursServ = wl.compteurs;
+      wl = wl.items;
+    }
+    indic = indic || {};
+    fonda = fonda || {};
 
-  // Filtre actuel (mémorisé)
-  if (typeof wlFiltreActuel === 'undefined') wlFiltreActuel = 'all';
+    if (wl.length === 0) {
+      container.innerHTML = '<div class="empty-tab"><span class="e-icon">🔭</span><span class="e-title">Watchlist vide</span></div>';
+      if (header) header.style.display = 'none';
+      return;
+    }
 
-  // Compter par catégorie
-  var compteurs = compteursServ || { all: wl.length, enter: 0, watch: 0, hunter: 0, neutral: 0, blocked: 0 };
+    // Mettre à jour le header
+    if (header) header.style.display = '';
+    if (countEl) countEl.textContent = wl.length;
 
-  // En-tête
-  var html = '<div id="wl-sticky-header" style="position:fixed;top:calc(var(--band-h) * 1.5 + 3px);left:0;right:0;z-index:100;background:var(--bg);padding:8px 12px 10px">'
-  html += '<div style="height:48px"></div>';
-  + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
-  + '<span class="wl-count">🔭 <span>' + wl.length + '</span> valeurs</span>'
-  + '<select id="wl-filter-select" onchange="filtrerWL(this.value)" style="flex:1;max-width:180px;background:var(--bg2);border:1px solid var(--border-dim);border-radius:var(--r-sm);color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 8px">'
-  + '<option value="all">Tous (' + compteurs.all + ')</option>'
-  + '<option value="enter">🟢 Entrer (' + compteurs.enter + ')</option>'
-  + '<option value="hunter">🎯 Chasseur (' + compteurs.hunter + ')</option>'
-  + '<option value="watch">👁 Surveiller (' + compteurs.watch + ')</option>'
-  + '<option value="neutral">⚪ Neutre (' + compteurs.neutral + ')</option>'
-  + '<option value="blocked">🚫 Éviter (' + compteurs.blocked + ')</option>'
-  + '</select>'
-  + '<button class="btn-add" onclick="ouvrirAjoutWL()">＋ Ajouter</button>'
-  + '</div></div>';
+    var compteurs = compteursServ || { all: wl.length, enter: 0, watch: 0, hunter: 0, neutral: 0, blocked: 0, wait: 0 };
 
-  // Liste filtrée
-  html += '<div class="wl-list">';
-  var affichees = 0;
-  for (var i = 0; i < wl.length; i++) {
-    var resultCls = wl[i].recommandation ? wl[i].recommandation.cls : 'neutral';
-    if (wlFiltreActuel !== 'all' && resultCls !== wlFiltreActuel) continue;
-    html += genererCarteWL(wl[i], indic[wl[i].ticker] || {}, fonda[wl[i].ticker] || {});
-    affichees++;
-  }
-  if (affichees === 0) {
-    html += '<div style="opacity:.6;padding:20px;text-align:center">Aucune valeur dans cette catégorie</div>';
-  }
-  html += '</div>';
+    // Mettre à jour le select
+    if (sel) {
+      sel.innerHTML = ''
+        + '<option value="all">Tous (' + compteurs.all + ')</option>'
+        + '<option value="enter">🟢 Entrer (' + compteurs.enter + ')</option>'
+        + '<option value="hunter">🎯 Chasseur (' + compteurs.hunter + ')</option>'
+        + '<option value="watch">👁 Surveiller (' + compteurs.watch + ')</option>'
+        + '<option value="neutral">⚪ Neutre (' + compteurs.neutral + ')</option>'
+        + '<option value="blocked">🚫 Éviter (' + compteurs.blocked + ')</option>';
+      sel.value = wlFiltreActuel;
+    }
 
-  tab.innerHTML = html;
+    var mCls = 'y';
+    if (peaData && peaData.contexte && peaData.contexte.signaux) mCls = signalClasse(peaData.contexte.signaux.global);
+
+    var html = '<div class="wl-list">';
+    var affichees = 0;
+    for (var i = 0; i < wl.length; i++) {
+      var resultCls = wl[i].recommandation ? wl[i].recommandation.cls : 'neutral';
+      if (wlFiltreActuel !== 'all' && resultCls !== wlFiltreActuel) continue;
+      html += genererCarteWL(wl[i], indic[wl[i].ticker] || {}, fonda[wl[i].ticker] || {});
+      affichees++;
+    }
+    if (affichees === 0) {
+      html += '<div style="opacity:.6;padding:20px;text-align:center">Aucune valeur dans cette catégorie</div>';
+    }
+    html += '</div>';
+    container.innerHTML = html;
+
   } catch(e) {
     console.error('WL erreur:', e);
-    tab.innerHTML = '<div style="color:var(--red);padding:20px;font-family:var(--mono)">Erreur WL: ' + e.message + '</div>';
+    var container = document.getElementById('wl-list-container');
+    if (container) container.innerHTML = '<div style="color:var(--red);padding:20px;font-family:var(--mono)">Erreur WL: ' + e.message + '</div>';
   }
 }
 
