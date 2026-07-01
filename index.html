@@ -599,6 +599,7 @@ function rafraichirUI(data) {
     var card = document.getElementById(openId);
     if (card) {
       var mcContainer = card.querySelector('.macro-container');
+      console.log('mcContainer.innerHTML au refresh:', mcContainer ? mcContainer.innerHTML.length : 'null');
       if (mcContainer && !mcContainer.innerHTML) {
         mcContainer.innerHTML = genererSectionMacro();
       }
