@@ -543,6 +543,10 @@ function toggleCard(id) {
         chargerGraphiqueEmbed(tk, cid, '3mo', 'line');
       }
     }
+    var mcContainer = detail.querySelector('.macro-container');
+    if (mcContainer && !mcContainer.innerHTML) {
+      mcContainer.innerHTML = genererSectionMacro();
+    }
     setTimeout(function() { card.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 60);
   }
   var mcContainer = document.getElementById('mc-' + id);
