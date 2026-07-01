@@ -470,6 +470,48 @@ function genererSectionMacro() {
   return html;
 }
 
+function genererSectionContexteMarche(data) {
+  if (!data || !data.length) return '';
+  
+  var html = '<div class="macro-section" id="cm-section-container">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleSection(this)">';
+  html += '<span class="macro-hdr-title">Contexte marché</span>';
+  html += '<span class="macro-hdr-chevron">▼</span>';
+  html += '</div>';
+  html += '<div class="macro-body">';
+  
+  data.forEach(function(m) {
+    html += '<div class="macro-row">';
+    html += '<span class="macro-label">' + m.label + '</span>';
+    html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
+    html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span>';
+    html += '</div>';
+  });
+  
+  html += '</div></div>';
+  return html;
+}
+
+function toggleSection(el) {
+  if (el && el.parentElement) {
+    el.parentElement.classList.toggle('open');
+  }
+}
+
+function chargerContexteMarcheEtInjecter(ticker, containerId) {
+  var el = document.getElementById(containerId);
+  if (!el || el.innerHTML) return;
+  
+  fetch(urlAPI('?action=contexte_marche&ticker=' + encodeURIComponent(ticker)))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (el && !el.innerHTML) {
+        el.innerHTML = genererSectionContexteMarche(data);
+      }
+    })
+    .catch(function(err) { console.warn('Erreur contexte marché', err); });
+}
+
 function toggleMacroSection(el) {
   if (el && el.parentElement) {
     el.parentElement.classList.toggle('open');
@@ -549,6 +591,14 @@ function toggleCard(id) {
     if (mcContainer && !mcContainer.innerHTML) {
       mcContainer.innerHTML = genererSectionMacro();
     }
+    var cmContainer = detail.querySelector('.cm-container');
+    if (cmContainer && !cmContainer.innerHTML) {
+      var tickEl = card.querySelector('.vtick');
+      if (tickEl) {
+        var tk = tickEl.textContent.split('·')[0].trim();
+        chargerContexteMarcheEtInjecter(tk, cmContainer.id);
+      }
+    }
     setTimeout(function() { card.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 60);
   }
   var mcContainer = document.getElementById('mc-' + id);
@@ -590,6 +640,13 @@ function rafraichirUI(data) {
       macroOuverte = true;
     }
   }
+  var cmOuverte = false;
+  if (openCard) {
+    var cmSect = openCard.querySelector('.cm-container .macro-section');
+    if (cmSect && cmSect.classList.contains('open')) {
+      cmOuverte = true;
+    }
+  }
   
   if (data.contexte) majBarre(data.contexte);
   if (data.portefeuille) majPortefeuille(data.portefeuille, data.indicateurs, data.fondamentaux);
@@ -613,6 +670,22 @@ function rafraichirUI(data) {
         if (macroOuverte) {
           var nouvelleSection = mcContainer.querySelector('.macro-section');
           if (nouvelleSection) nouvelleSection.classList.add('open');
+        }
+      }
+      var cmContainer = card.querySelector('.cm-container');
+      if (cmContainer) {
+        if (!cmContainer.innerHTML) {
+          var tickEl2 = card.querySelector('.vtick');
+          if (tickEl2) {
+            var tk2 = tickEl2.textContent.split('·')[0].trim();
+            chargerContexteMarcheEtInjecter(tk2, cmContainer.id);
+          }
+        }
+        if (cmOuverte) {
+          setTimeout(function() {
+            var sect = cmContainer.querySelector('.macro-section');
+            if (sect) sect.classList.add('open');
+          }, 200);
         }
       }
       
@@ -920,6 +993,7 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
     + '<span style="display:flex;align-items:center;gap:4px;font-size:8px;font-family:var(--mono);color:var(--dim)"><span style="width:12px;height:2px;background:rgba(88,166,255,.3);display:inline-block"></span>Bollinger</span>'
     + '</div>'
     + '<div class="macro-container" id="mc-' + id + '"></div>'
+    + (nomPoche === 'Cyclique' ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
     + '<div class="detail-actions-row2">'
     + '<button class="btn-tx buy" onclick="event.stopPropagation();openTx(\'Achat\',\'' + pos.ticker + '\',\'' + sn + '\')">🛒 Achat</button>'
     + '<button class="btn-tx sell" onclick="event.stopPropagation();openTx(\'Vente\',\'' + pos.ticker + '\',\'' + sn + '\')">💸 Vente</button>'
@@ -1081,6 +1155,7 @@ function genererCarteWL(v, ind, fon) {
     + '<span style="display:flex;align-items:center;gap:4px;font-size:8px;font-family:var(--mono);color:var(--dim)"><span style="width:12px;height:2px;background:rgba(88,166,255,.3);display:inline-block"></span>Bollinger</span>'
     + '</div>'
     + '<div class="macro-container" id="mc-' + id + '"></div>'
+    + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
     + '<div class="detail-actions-row2"><button class="btn-buy-ptf" onclick="event.stopPropagation();openTx(\'Achat\',\'' + v.ticker + '\',\'' + sn + '\')">🛒 Acheter → Ptf</button></div>'
     + '<button class="btn-delete" onclick="event.stopPropagation();supprimerValeur(\'' + v.ticker + '\',\'' + sn + '\')">🗑 Supprimer de la watchlist</button>'
     + '</div></div>';
