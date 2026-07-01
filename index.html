@@ -293,7 +293,24 @@ select.tx-input{-webkit-appearance:none;appearance:none}
   color: white;
   border-color: #555;
 }
-
+/* SECTION MACRO — Modal détail */
+.macro-section{margin-top:14px;background:var(--bg2);border:1px solid var(--border-dim);border-radius:var(--r);overflow:hidden}
+.macro-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer;user-select:none;background:var(--bg3);border-bottom:1px solid var(--border-dim);transition:background .12s}
+.macro-hdr:active{background:var(--border-dim)}
+.macro-hdr-title{font-size:11px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text);font-weight:600}
+.macro-hdr-chevron{font-size:10px;color:var(--dim);transition:transform .2s}
+.macro-section.open .macro-hdr-chevron{transform:rotate(180deg)}
+.macro-body{display:none;padding:8px 0}
+.macro-section.open .macro-body{display:block}
+.macro-row{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;font-size:11px;font-family:var(--mono);border-bottom:1px solid var(--border-dim)}
+.macro-row:last-child{border-bottom:none}
+.macro-label{color:var(--muted);flex:1;padding-right:8px}
+.macro-val{font-weight:700;padding-right:10px;min-width:70px;text-align:right}
+.macro-val.g{color:var(--green)}
+.macro-val.y{color:var(--yellow)}
+.macro-val.r{color:var(--red)}
+.macro-seuils{color:var(--dim);font-size:10px;min-width:60px;text-align:right}
+  
 </style>
 </head>
 <body>
@@ -427,6 +444,36 @@ var chartInstances = {};
 var chartMeta = {};
 var chartCache = {};
 
+function genererSectionMacro() {
+  if (!peaData || !peaData.macro || !peaData.macro.length) return '';
+  
+  var html = '<div class="macro-section" id="macro-section-container">';
+  html += '<div class="macro-hdr" onclick="toggleMacroSection()">';
+  html += '<span class="macro-hdr-title">Contexte macro</span>';
+  html += '<span class="macro-hdr-chevron">▼</span>';
+  html += '</div>';
+  html += '<div class="macro-body">';
+  
+  peaData.macro.forEach(function(m) {
+    var couleurClass = m.couleur || '';
+    var uniteAff = m.unite ? m.unite : '';
+    
+    html += '<div class="macro-row">';
+    html += '<span class="macro-label">' + m.label + '</span>';
+    html += '<span class="macro-val ' + couleurClass + '">' + m.valeur + uniteAff + '</span>';
+    html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span>';
+    html += '</div>';
+  });
+  
+  html += '</div></div>';
+  return html;
+}
+
+function toggleMacroSection() {
+  var el = document.getElementById('macro-section-container');
+  if (el) el.classList.toggle('open');
+}
+  
 // ── INIT ──────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   chargerDonnees();
@@ -497,6 +544,10 @@ function toggleCard(id) {
       }
     }
     setTimeout(function() { card.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 60);
+  }
+  var mcContainer = document.getElementById('mc-' + id);
+  if (mcContainer && !mcContainer.innerHTML) {
+    mcContainer.innerHTML = genererSectionMacro();
   }
 }
 
@@ -838,6 +889,7 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
     + '<button class="chart-ctrl" onclick="event.stopPropagation();changerTypeEmbed(\'' + pos.ticker + '\',\'' + id + '\',\'candle\',this)">Bougies</button>'
     + '</div></div>'
     + '<div class="chart-embed" id="ce-' + id + '"><div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-family:var(--mono);font-size:11px">⏳</div></div>'
+    + '<div class="macro-container" id="mc-' + id + '"></div>'
     + '<div style="display:flex;gap:10px;justify-content:center;padding:2px 0 8px;flex-wrap:wrap">'
     + '<span style="display:flex;align-items:center;gap:4px;font-size:8px;font-family:var(--mono);color:var(--dim)"><span style="width:12px;height:0;border-top:2px dashed #58a6ff;display:inline-block"></span>MM20</span>'
     + '<span style="display:flex;align-items:center;gap:4px;font-size:8px;font-family:var(--mono);color:var(--dim)"><span style="width:12px;height:0;border-top:2px dashed #d29922;display:inline-block"></span>MM50</span>'
