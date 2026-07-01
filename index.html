@@ -590,7 +590,6 @@ function rafraichirUI(data) {
       macroOuverte = true;
     }
   }
-console.log('DEBUT rafraichirUI - macroOuverte =', macroOuverte);
   
   if (data.contexte) majBarre(data.contexte);
   if (data.portefeuille) majPortefeuille(data.portefeuille, data.indicateurs, data.fondamentaux);
@@ -605,7 +604,6 @@ console.log('DEBUT rafraichirUI - macroOuverte =', macroOuverte);
   // Restaurer la carte ouverte
   if (openId) {
     var card = document.getElementById(openId);
-    console.log('RESTAURATION - macroOuverte =', macroOuverte);
     if (card) {
       var mcContainer = card.querySelector('.macro-container');
       if (mcContainer) {
