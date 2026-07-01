@@ -562,6 +562,7 @@ function toggleCard(id) {
 // ══════════════════════════════════════
 
 function chargerDonnees() {
+  console.log('=== chargerDonnees appelé ===');
   var cache = localStorage.getItem('peaCache');
   if (cache && !peaData) {
     peaData = JSON.parse(cache);
