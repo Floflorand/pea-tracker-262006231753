@@ -448,7 +448,7 @@ function genererSectionMacro() {
   if (!peaData || !peaData.macro || !peaData.macro.length) return '';
   
   var html = '<div class="macro-section" id="macro-section-container">';
-  html += '<div class="macro-hdr" onclick="toggleMacroSection()">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleMacroSection(this)">';
   html += '<span class="macro-hdr-title">Contexte macro</span>';
   html += '<span class="macro-hdr-chevron">▼</span>';
   html += '</div>';
@@ -469,9 +469,10 @@ function genererSectionMacro() {
   return html;
 }
 
-function toggleMacroSection() {
-  var el = document.getElementById('macro-section-container');
-  if (el) el.classList.toggle('open');
+function toggleMacroSection(el) {
+  if (el && el.parentElement) {
+    el.parentElement.classList.toggle('open');
+  }
 }
   
 // ── INIT ──────────────────────────────
@@ -611,6 +612,11 @@ function rafraichirUI(data) {
       }
     }
   }
+  // Re-injecter la macro
+var mcContainer = card.querySelector('.macro-container');
+if (mcContainer && !mcContainer.innerHTML) {
+  mcContainer.innerHTML = genererSectionMacro();
+}
   // ── Restaurer l'état UI ──
   // Onglet actif (sauf au tout premier chargement)
   var btnActuel = document.querySelector('.nav-btn.active');
@@ -893,26 +899,15 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
     + '<button class="chart-ctrl" onclick="event.stopPropagation();changerTypeEmbed(\'' + pos.ticker + '\',\'' + id + '\',\'candle\',this)">Bougies</button>'
     + '</div></div>'
     + '<div class="chart-embed" id="ce-' + id + '"><div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-family:var(--mono);font-size:11px">⏳</div></div>'
-    + '<div class="macro-container" id="mc-' + id + '"></div>'
-    + '<div style="display:flex;gap:10px;justify-content:center;padding:2px 0 8px;flex-wrap:wrap">'
+        + '<div style="display:flex;gap:10px;justify-content:center;padding:2px 0 8px;flex-wrap:wrap">'
     + '<span style="display:flex;align-items:center;gap:4px;font-size:8px;font-family:var(--mono);color:var(--dim)"><span style="width:12px;height:0;border-top:2px dashed #58a6ff;display:inline-block"></span>MM20</span>'
     + '<span style="display:flex;align-items:center;gap:4px;font-size:8px;font-family:var(--mono);color:var(--dim)"><span style="width:12px;height:0;border-top:2px dashed #d29922;display:inline-block"></span>MM50</span>'
     + '<span style="display:flex;align-items:center;gap:4px;font-size:8px;font-family:var(--mono);color:var(--dim)"><span style="width:12px;height:2px;background:rgba(88,166,255,.3);display:inline-block"></span>Bollinger</span>'
+    + '<div class="macro-container" id="mc-' + id + '"></div>'
     + '</div>'+ '<div class="detail-actions-row2">'
     + '<button class="btn-tx buy" onclick="event.stopPropagation();openTx(\'Achat\',\'' + pos.ticker + '\',\'' + sn + '\')">🛒 Achat</button>'
     + '<button class="btn-tx sell" onclick="event.stopPropagation();openTx(\'Vente\',\'' + pos.ticker + '\',\'' + sn + '\')">💸 Vente</button>'
     + '<button class="btn-tx div" onclick="event.stopPropagation();openTx(\'Dividende\',\'' + pos.ticker + '\',\'' + sn + '\')">💰 Div.</button></div>'
-    + '<div class="dtitle">Analyse sectorielle</div>'
-    + '<div class="sgrid">' + barScore('Score ETF', ind.scoreETF) + barScore('Macro sect.', ind.scoreMacroSect) + '</div>'
-    + '<div class="cblock"><div class="cleft"><span class="clbl">Combiné sectoriel</span>'
-    + '<span class="cval ' + sCls + '">' + fmt(ind.scoreSectCombi, 2) + '</span></div>'
-    + '<span class="sp ' + sCls + '" style="font-size:11px;padding:4px 10px"><span class="sd" style="background:var(--' + couleurVar(sCls) + ')"></span>' + signalEmoji(sCls) + ' ' + sLbl + '</span></div>'
-    + '<div class="dtitle">Analyse entreprise</div>'
-    + '<div class="sgrid">' + barScore('Score tech.', ind.scoreTech) + barScore('Score fonda.', ind.scoreFonda) + '</div>'
-    + '<div class="cblock"><div class="cleft"><span class="clbl">Combiné entreprise</span>'
-    + '<span class="cval ' + eCls + '">' + fmt(ind.scoreEntCombi, 2) + '</span></div>'
-    + '<span class="sp ' + eCls + '" style="font-size:11px;padding:4px 10px"><span class="sd" style="background:var(--' + couleurVar(eCls) + ')"></span>' + signalEmoji(eCls) + ' ' + eLbl + '</span></div>'
-    + '<div class="dtitle">Fondamentaux</div>' + fHtml
     + '</div></div>';
 }
 
