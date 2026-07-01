@@ -302,14 +302,15 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 .macro-section.open .macro-hdr-chevron{transform:rotate(180deg)}
 .macro-body{display:none;padding:8px 0}
 .macro-section.open .macro-body{display:block}
-.macro-row{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;font-size:11px;font-family:var(--mono);border-bottom:1px solid var(--border-dim)}
+.macro-row{display:grid;grid-template-columns:1fr 70px 65px;align-items:center;padding:7px 12px;font-size:11px;font-family:var(--mono);border-bottom:1px solid var(--border-dim)}
+.macro-label{color:var(--muted)}
 .macro-row:last-child{border-bottom:none}
 .macro-label{color:var(--muted);flex:1;padding-right:8px}
-.macro-val{font-weight:700;padding-right:10px;min-width:70px;text-align:right}
+.macro-val{font-weight:700;text-align:center}
 .macro-val.g{color:var(--green)}
 .macro-val.y{color:var(--yellow)}
 .macro-val.r{color:var(--red)}
-.macro-seuils{color:var(--dim);font-size:10px;min-width:60px;text-align:right}
+.macro-seuils{color:var(--dim);font-size:10px;text-align:right}
   
 </style>
 </head>
@@ -597,6 +598,10 @@ function rafraichirUI(data) {
   if (openId) {
     var card = document.getElementById(openId);
     if (card) {
+      var mcContainer = card.querySelector('.macro-container');
+      if (mcContainer && !mcContainer.innerHTML) {
+        mcContainer.innerHTML = genererSectionMacro();
+      }
       card.classList.add('open');
       var d = card.querySelector('.vdetail');
       if (d) d.classList.add('open');
@@ -612,11 +617,7 @@ function rafraichirUI(data) {
       }
     }
   }
-  // Re-injecter la macro
-var mcContainer = card.querySelector('.macro-container');
-if (mcContainer && !mcContainer.innerHTML) {
-  mcContainer.innerHTML = genererSectionMacro();
-}
+  
   // ── Restaurer l'état UI ──
   // Onglet actif (sauf au tout premier chargement)
   var btnActuel = document.querySelector('.nav-btn.active');
