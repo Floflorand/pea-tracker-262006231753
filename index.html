@@ -562,7 +562,6 @@ function toggleCard(id) {
 // ══════════════════════════════════════
 
 function chargerDonnees() {
-  console.log('=== chargerDonnees appelé ===');
   var cache = localStorage.getItem('peaCache');
   if (cache && !peaData) {
     peaData = JSON.parse(cache);
@@ -582,7 +581,6 @@ function chargerDonnees() {
 
 function rafraichirUI(data) {
   // Sauvegarder la carte ouverte
-  console.log('=== rafraichirUI appelé ===');
   var openCard = document.querySelector('.vc.open');
   var openId = openCard ? openCard.id : null;
 
@@ -600,11 +598,30 @@ function rafraichirUI(data) {
   if (openId) {
     var card = document.getElementById(openId);
     if (card) {
+      // Re-injecter la macro en préservant l'état ouvert
       var mcContainer = card.querySelector('.macro-container');
-      console.log('mcContainer.innerHTML au refresh:', mcContainer ? mcContainer.innerHTML.length : 'null');
-      if (mcContainer && !mcContainer.innerHTML) {
-        mcContainer.innerHTML = genererSectionMacro();
+      if (mcContainer) {
+        var etaitOuverte = false;
+        var sectionExistante = mcContainer.querySelector('.macro-section');
+        if (sectionExistante && sectionExistante.classList.contains('open')) {
+          etaitOuverte = true;
+        }
+  
+        if (!mcContainer.innerHTML) {
+          mcContainer.innerHTML = genererSectionMacro();
+        }
+        
+        if (etaitOuverte) {
+          var nouvelleSection = mcContainer.querySelector('.macro-section');
+          if (nouvelleSection) nouvelleSection.classList.add('open');
+        }
       }
+  
+  if (etaitOuverte) {
+    var nouvelleSection = mcContainer.querySelector('.macro-section');
+    if (nouvelleSection) nouvelleSection.classList.add('open');
+  }
+}
       card.classList.add('open');
       var d = card.querySelector('.vdetail');
       if (d) d.classList.add('open');
