@@ -544,6 +544,9 @@ function toggleCard(id) {
       }
     }
     var mcContainer = detail.querySelector('.macro-container');
+    console.log('Injection macro pour', id);
+    console.log('mcContainer trouvé:', mcContainer);
+    console.log('peaData.macro:', peaData && peaData.macro ? peaData.macro.length + ' items' : 'absent');
     if (mcContainer && !mcContainer.innerHTML) {
       mcContainer.innerHTML = genererSectionMacro();
     }
