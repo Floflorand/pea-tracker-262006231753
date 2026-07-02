@@ -556,6 +556,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var m = now.getUTCMinutes();
     if (hFr === 18 && m >= 40 && m <= 41) {
       chartCache = {};
+      cmCache = {};
       console.log('📊 Cache graphiques vidé (18h40)');
     }
   }, 30 * 1000);
@@ -657,6 +658,7 @@ function chargerDonnees() {
 
 function rafraichirUI(data) {
   // Sauvegarder la carte ouverte
+  var scrollPos = window.scrollY;
   var openCard = document.querySelector('.vc.open');
   var openId = openCard ? openCard.id : null;
   var macroOuverte = false;
@@ -742,6 +744,7 @@ function rafraichirUI(data) {
     var tov = document.getElementById('tx-overlay');
     if (tov && !tov.classList.contains('open')) tov.classList.add('open');
   }
+ window.scrollTo(0, scrollPos); 
 }
 
 function prechargerGraphiques() {
