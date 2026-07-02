@@ -302,15 +302,17 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 .macro-section.open .macro-hdr-chevron{transform:rotate(180deg)}
 .macro-body{display:none;padding:8px 0}
 .macro-section.open .macro-body{display:block}
-.macro-row{display:grid;grid-template-columns:1fr 70px 65px;align-items:center;padding:7px 12px;font-size:11px;font-family:var(--mono);border-bottom:1px solid var(--border-dim)}
-.macro-label{color:var(--muted)}
+.macro-row{display:grid;grid-template-columns:30px 1fr 70px 65px;align-items:center;padding:7px 12px;font-size:11px;font-family:var(--mono);border-bottom:1px solid var(--border-dim)}
 .macro-row:last-child{border-bottom:none}
-.macro-label{color:var(--muted);flex:1;padding-right:8px}
+.macro-imp{display:inline-block;font-size:9px;color:var(--dim);text-align:left;letter-spacing:1px}
+.macro-label{color:var(--muted);padding-right:8px}
 .macro-val{font-weight:700;text-align:center}
 .macro-val.g{color:var(--green)}
 .macro-val.y{color:var(--yellow)}
 .macro-val.r{color:var(--red)}
 .macro-seuils{color:var(--dim);font-size:10px;text-align:right}
+.macro-imp{display:inline-block;width:30px;font-size:9px;color:var(--dim);text-align:left;letter-spacing:1px;flex-shrink:0;}
+.macro-row{display:grid;grid-template-columns:30px 1fr 70px 65px;align-items:center;padding:7px 12px;font-size:11px;font-family:var(--mono);border-bottom:1px solid var(--border-dim);}
   
 </style>
 </head>
@@ -445,24 +447,62 @@ var chartInstances = {};
 var chartMeta = {};
 var chartCache = {};
 var cmCache = {};
+var macroCache = {};
 
-function genererSectionMacro() {
-  if (!peaData || !peaData.macro || !peaData.macro.length) return '';
+function chargerMacroEtInjecter(ticker, containerId, ouverture) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  
+  if (el.innerHTML) {
+    if (ouverture) {
+      var sect = el.querySelector('.macro-section');
+      if (sect) sect.classList.add('open');
+    }
+    return;
+  }
+  
+  if (macroCache[ticker]) {
+    el.innerHTML = genererSectionMacro(macroCache[ticker]);
+    if (ouverture) {
+      var sect = el.querySelector('.macro-section');
+      if (sect) sect.classList.add('open');
+    }
+    return;
+  }
+  
+  fetch(urlAPI('?action=macro&ticker=' + encodeURIComponent(ticker)))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      macroCache[ticker] = data;
+      if (el && !el.innerHTML) {
+        el.innerHTML = genererSectionMacro(data);
+        if (ouverture) {
+          var sect = el.querySelector('.macro-section');
+          if (sect) sect.classList.add('open');
+        }
+      }
+    })
+    .catch(function(err) { console.warn('Erreur macro', err); });
+}
+
+function genererSectionMacro(data) {
+  if (!data || !data.length) return '';
   
   var html = '<div class="macro-section" id="macro-section-container">';
-  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleMacroSection(this)">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleSection(this)">';
   html += '<span class="macro-hdr-title">Contexte macro</span>';
   html += '<span class="macro-hdr-chevron">▼</span>';
   html += '</div>';
   html += '<div class="macro-body">';
   
-  peaData.macro.forEach(function(m) {
-    var couleurClass = m.couleur || '';
-    var uniteAff = m.unite ? m.unite : '';
+  data.forEach(function(m) {
+    var pastilles = '';
+    for (var i = 0; i < m.importance; i++) pastilles += '•';
     
     html += '<div class="macro-row">';
+    html += '<span class="macro-imp">' + pastilles + '</span>';
     html += '<span class="macro-label">' + m.label + '</span>';
-    html += '<span class="macro-val ' + couleurClass + '">' + m.valeur + uniteAff + '</span>';
+    html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
     html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span>';
     html += '</div>';
   });
@@ -557,6 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (hFr === 18 && m >= 40 && m <= 41) {
       chartCache = {};
       cmCache = {};
+      macroCache = {};
       console.log('📊 Cache graphiques vidé (18h40)');
     }
   }, 30 * 1000);
@@ -616,7 +657,11 @@ function toggleCard(id) {
     }
     var mcContainer = detail.querySelector('.macro-container');
     if (mcContainer && !mcContainer.innerHTML) {
-      mcContainer.innerHTML = genererSectionMacro();
+      var tickEl = card.querySelector('.vtick');
+      if (tickEl) {
+        var tk = tickEl.textContent.split('·')[0].trim();
+        chargerMacroEtInjecter(tk, mcContainer.id);
+      }
     }
     var cmContainer = detail.querySelector('.cm-container');
     if (cmContainer && !cmContainer.innerHTML) {
@@ -692,12 +737,10 @@ function rafraichirUI(data) {
     if (card) {
       var mcContainer = card.querySelector('.macro-container');
       if (mcContainer) {
-        if (!mcContainer.innerHTML) {
-          mcContainer.innerHTML = genererSectionMacro();
-        }
-        if (macroOuverte) {
-          var nouvelleSection = mcContainer.querySelector('.macro-section');
-          if (nouvelleSection) nouvelleSection.classList.add('open');
+        var tickEl3 = card.querySelector('.vtick');
+        if (tickEl3) {
+          var tk3 = tickEl3.textContent.split('·')[0].trim();
+          chargerMacroEtInjecter(tk3, mcContainer.id, macroOuverte);
         }
       }
       var cmContainer = card.querySelector('.cm-container');
