@@ -522,7 +522,11 @@ function genererSectionContexteMarche(data) {
   html += '<div class="macro-body">';
   
   data.forEach(function(m) {
+    var pastilles = '';
+    for (var i = 0; i < m.importance; i++) pastilles += '•';
+    
     html += '<div class="macro-row">';
+    html += '<span class="macro-imp">' + pastilles + '</span>';
     html += '<span class="macro-label">' + m.label + '</span>';
     html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
     html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span>';
