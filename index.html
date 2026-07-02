@@ -447,6 +447,7 @@ var chartInstances = {};
 var chartMeta = {};
 var chartCache = {};
 var cmCache = {};
+var csCache = {};
 var macroCache = {};
 
 function chargerMacroEtInjecter(ticker, containerId, ouverture) {
@@ -537,6 +538,32 @@ function genererSectionContexteMarche(data) {
   return html;
 }
 
+function genererSectionCreuxSectoriel(data) {
+  if (!data || !data.length) return '';
+  
+  var html = '<div class="macro-section" id="cs-section-container">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleSection(this)">';
+  html += '<span class="macro-hdr-title">Creux sectoriel</span>';
+  html += '<span class="macro-hdr-chevron">▼</span>';
+  html += '</div>';
+  html += '<div class="macro-body">';
+  
+  data.forEach(function(m) {
+    var pastilles = '';
+    for (var i = 0; i < m.importance; i++) pastilles += '•';
+    
+    html += '<div class="macro-row">';
+    html += '<span class="macro-imp">' + pastilles + '</span>';
+    html += '<span class="macro-label">' + m.label + '</span>';
+    html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
+    html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span>';
+    html += '</div>';
+  });
+  
+  html += '</div></div>';
+  return html;
+}
+
 function toggleSection(el) {
   if (el && el.parentElement) {
     el.parentElement.classList.toggle('open');
@@ -582,6 +609,42 @@ function chargerContexteMarcheEtInjecter(ticker, containerId, ouverture) {
     .catch(function(err) { console.warn('Erreur contexte marché', err); });
 }
 
+function chargerCreuxSectorielEtInjecter(ticker, containerId, ouverture) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  
+  if (el.innerHTML) {
+    if (ouverture) {
+      var sect = el.querySelector('.macro-section');
+      if (sect) sect.classList.add('open');
+    }
+    return;
+  }
+  
+  if (csCache[ticker]) {
+    el.innerHTML = genererSectionCreuxSectoriel(csCache[ticker]);
+    if (ouverture) {
+      var sect = el.querySelector('.macro-section');
+      if (sect) sect.classList.add('open');
+    }
+    return;
+  }
+  
+  fetch(urlAPI('?action=creux_sectoriel&ticker=' + encodeURIComponent(ticker)))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      csCache[ticker] = data;
+      if (el && !el.innerHTML) {
+        el.innerHTML = genererSectionCreuxSectoriel(data);
+        if (ouverture) {
+          var sect = el.querySelector('.macro-section');
+          if (sect) sect.classList.add('open');
+        }
+      }
+    })
+    .catch(function(err) { console.warn('Erreur creux sectoriel', err); });
+}
+  
 function toggleMacroSection(el) {
   if (el && el.parentElement) {
     el.parentElement.classList.toggle('open');
@@ -675,6 +738,14 @@ function toggleCard(id) {
         chargerContexteMarcheEtInjecter(tk, cmContainer.id);
       }
     }
+    var csContainer = detail.querySelector('.cs-container');
+    if (csContainer && !csContainer.innerHTML) {
+      var tickElCS = card.querySelector('.vtick');
+      if (tickElCS) {
+        var tkCS = tickElCS.textContent.split('·')[0].trim();
+        chargerCreuxSectorielEtInjecter(tkCS, csContainer.id);
+      }
+    }
     setTimeout(function() { card.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 60);
   }
   var mcContainer = document.getElementById('mc-' + id);
@@ -724,6 +795,13 @@ function rafraichirUI(data) {
       cmOuverte = true;
     }
   }
+  var csOuverte = false;
+  if (openCard) {
+    var csSect = openCard.querySelector('.cs-container .macro-section');
+    if (csSect && csSect.classList.contains('open')) {
+      csOuverte = true;
+    }
+  }
   
   if (data.contexte) majBarre(data.contexte);
   if (data.portefeuille) majPortefeuille(data.portefeuille, data.indicateurs, data.fondamentaux);
@@ -753,6 +831,14 @@ function rafraichirUI(data) {
         if (tickEl2) {
           var tk2 = tickEl2.textContent.split('·')[0].trim();
           chargerContexteMarcheEtInjecter(tk2, cmContainer.id, cmOuverte);
+        }
+      }
+      var csContainer = card.querySelector('.cs-container');
+      if (csContainer) {
+        var tickElCS2 = card.querySelector('.vtick');
+        if (tickElCS2) {
+          var tkCS2 = tickElCS2.textContent.split('·')[0].trim();
+          chargerCreuxSectorielEtInjecter(tkCS2, csContainer.id, csOuverte);
         }
       }
       
@@ -1062,6 +1148,7 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
     + '</div>'
     + '<div class="macro-container" id="mc-' + id + '"></div>'
     + (nomPoche === 'Cyclique' ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
+    + (nomPoche === 'Cyclique' ? '<div class="cs-container" id="cs-' + id + '"></div>' : '')
     + '<div class="detail-actions-row2">'
     + '<button class="btn-tx buy" onclick="event.stopPropagation();openTx(\'Achat\',\'' + pos.ticker + '\',\'' + sn + '\')">🛒 Achat</button>'
     + '<button class="btn-tx sell" onclick="event.stopPropagation();openTx(\'Vente\',\'' + pos.ticker + '\',\'' + sn + '\')">💸 Vente</button>'
@@ -1224,6 +1311,7 @@ function genererCarteWL(v, ind, fon) {
     + '</div>'
     + '<div class="macro-container" id="mc-' + id + '"></div>'
     + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
+    + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="cs-container" id="cs-' + id + '"></div>' : '')
     + '<div class="detail-actions-row2"><button class="btn-buy-ptf" onclick="event.stopPropagation();openTx(\'Achat\',\'' + v.ticker + '\',\'' + sn + '\')">🛒 Acheter → Ptf</button></div>'
     + '<button class="btn-delete" onclick="event.stopPropagation();supprimerValeur(\'' + v.ticker + '\',\'' + sn + '\')">🗑 Supprimer de la watchlist</button>'
     + '</div></div>';
