@@ -444,6 +444,7 @@ var refreshTimer = null;
 var chartInstances = {};
 var chartMeta = {};
 var chartCache = {};
+var cmCache = {};
 
 function genererSectionMacro() {
   if (!peaData || !peaData.macro || !peaData.macro.length) return '';
@@ -501,6 +502,8 @@ function toggleSection(el) {
 function chargerContexteMarcheEtInjecter(ticker, containerId, ouverture) {
   var el = document.getElementById(containerId);
   if (!el) return;
+  
+  // Si déjà rempli, on ne touche pas
   if (el.innerHTML) {
     if (ouverture) {
       var sect = el.querySelector('.macro-section');
@@ -509,9 +512,21 @@ function chargerContexteMarcheEtInjecter(ticker, containerId, ouverture) {
     return;
   }
   
+  // Si en cache, injection immédiate
+  if (cmCache[ticker]) {
+    el.innerHTML = genererSectionContexteMarche(cmCache[ticker]);
+    if (ouverture) {
+      var sect = el.querySelector('.macro-section');
+      if (sect) sect.classList.add('open');
+    }
+    return;
+  }
+  
+  // Sinon, fetch et mise en cache
   fetch(urlAPI('?action=contexte_marche&ticker=' + encodeURIComponent(ticker)))
     .then(function(r) { return r.json(); })
     .then(function(data) {
+      cmCache[ticker] = data;
       if (el && !el.innerHTML) {
         el.innerHTML = genererSectionContexteMarche(data);
         if (ouverture) {
