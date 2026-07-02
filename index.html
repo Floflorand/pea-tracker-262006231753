@@ -498,15 +498,26 @@ function toggleSection(el) {
   }
 }
 
-function chargerContexteMarcheEtInjecter(ticker, containerId) {
+function chargerContexteMarcheEtInjecter(ticker, containerId, ouverture) {
   var el = document.getElementById(containerId);
-  if (!el || el.innerHTML) return;
+  if (!el) return;
+  if (el.innerHTML) {
+    if (ouverture) {
+      var sect = el.querySelector('.macro-section');
+      if (sect) sect.classList.add('open');
+    }
+    return;
+  }
   
   fetch(urlAPI('?action=contexte_marche&ticker=' + encodeURIComponent(ticker)))
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (el && !el.innerHTML) {
         el.innerHTML = genererSectionContexteMarche(data);
+        if (ouverture) {
+          var sect = el.querySelector('.macro-section');
+          if (sect) sect.classList.add('open');
+        }
       }
     })
     .catch(function(err) { console.warn('Erreur contexte marché', err); });
@@ -674,18 +685,10 @@ function rafraichirUI(data) {
       }
       var cmContainer = card.querySelector('.cm-container');
       if (cmContainer) {
-        if (!cmContainer.innerHTML) {
-          var tickEl2 = card.querySelector('.vtick');
-          if (tickEl2) {
-            var tk2 = tickEl2.textContent.split('·')[0].trim();
-            chargerContexteMarcheEtInjecter(tk2, cmContainer.id);
-          }
-        }
-        if (cmOuverte) {
-          setTimeout(function() {
-            var sect = cmContainer.querySelector('.macro-section');
-            if (sect) sect.classList.add('open');
-          }, 200);
+        var tickEl2 = card.querySelector('.vtick');
+        if (tickEl2) {
+          var tk2 = tickEl2.textContent.split('·')[0].trim();
+          chargerContexteMarcheEtInjecter(tk2, cmContainer.id, cmOuverte);
         }
       }
       
