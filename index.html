@@ -313,7 +313,9 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 .macro-seuils{color:var(--dim);font-size:10px;text-align:right}
 .macro-imp{display:inline-block;width:30px;font-size:9px;color:var(--dim);text-align:left;letter-spacing:1px;flex-shrink:0;}
 .macro-row{display:grid;grid-template-columns:30px 1fr 70px 65px;align-items:center;padding:7px 12px;font-size:11px;font-family:var(--mono);border-bottom:1px solid var(--border-dim);}
-  
+.macro-subheader{padding:6px 12px 4px;font-size:9px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;background:var(--bg2);border-bottom:1px solid var(--border-dim)}
+.macro-subheader-note{font-size:8px;color:var(--dim);opacity:0.7;text-transform:none;letter-spacing:0.5px;margin-left:6px}
+
 </style>
 </head>
 <body>
@@ -448,6 +450,7 @@ var chartMeta = {};
 var chartCache = {};
 var cmCache = {};
 var csCache = {};
+var vvCache = {};
 var macroCache = {};
 
 function chargerMacroEtInjecter(ticker, containerId, ouverture) {
@@ -564,6 +567,56 @@ function genererSectionCreuxSectoriel(data) {
   return html;
 }
 
+function genererSectionValidationValeur(data) {
+  if (!data || !data.length) return '';
+  
+  var html = '<div class="macro-section" id="vv-section-container">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleSection(this)">';
+  html += '<span class="macro-hdr-title">Validation valeur</span>';
+  html += '<span class="macro-hdr-chevron">▼</span>';
+  html += '</div>';
+  html += '<div class="macro-body">';
+  
+  // Grouper par bloc
+  var blocs = { sante: [], zone: [], catalyseur: [] };
+  data.forEach(function(m) {
+    if (blocs[m.bloc]) blocs[m.bloc].push(m);
+  });
+  
+  // Tri par importance décroissante dans chaque bloc
+  Object.keys(blocs).forEach(function(k) {
+    blocs[k].sort(function(a, b) { return b.importance - a.importance; });
+  });
+  
+  var sousTitres = {
+    sante: { titre: 'Santé financière', note: 'obligatoire' },
+    zone: { titre: "Zone d'achat", note: '2/4 minimum' },
+    catalyseur: { titre: 'Catalyseur', note: 'obligatoire' }
+  };
+  
+  ['sante', 'zone', 'catalyseur'].forEach(function(blocKey) {
+    if (blocs[blocKey].length === 0) return;
+    
+    var info = sousTitres[blocKey];
+    html += '<div class="macro-subheader">' + info.titre + '<span class="macro-subheader-note">' + info.note + '</span></div>';
+    
+    blocs[blocKey].forEach(function(m) {
+      var pastilles = '';
+      for (var i = 0; i < m.importance; i++) pastilles += '•';
+      
+      html += '<div class="macro-row">';
+      html += '<span class="macro-imp">' + pastilles + '</span>';
+      html += '<span class="macro-label">' + m.label + '</span>';
+      html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
+      html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span>';
+      html += '</div>';
+    });
+  });
+  
+  html += '</div></div>';
+  return html;
+}
+
 function toggleSection(el) {
   if (el && el.parentElement) {
     el.parentElement.classList.toggle('open');
@@ -644,6 +697,42 @@ function chargerCreuxSectorielEtInjecter(ticker, containerId, ouverture) {
     })
     .catch(function(err) { console.warn('Erreur creux sectoriel', err); });
 }
+
+function chargerValidationValeurEtInjecter(ticker, containerId, ouverture) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  
+  if (el.innerHTML) {
+    if (ouverture) {
+      var sect = el.querySelector('.macro-section');
+      if (sect) sect.classList.add('open');
+    }
+    return;
+  }
+  
+  if (vvCache[ticker]) {
+    el.innerHTML = genererSectionValidationValeur(vvCache[ticker]);
+    if (ouverture) {
+      var sect = el.querySelector('.macro-section');
+      if (sect) sect.classList.add('open');
+    }
+    return;
+  }
+  
+  fetch(urlAPI('?action=validation_valeur&ticker=' + encodeURIComponent(ticker)))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      vvCache[ticker] = data;
+      if (el && !el.innerHTML) {
+        el.innerHTML = genererSectionValidationValeur(data);
+        if (ouverture) {
+          var sect = el.querySelector('.macro-section');
+          if (sect) sect.classList.add('open');
+        }
+      }
+    })
+    .catch(function(err) { console.warn('Erreur validation valeur', err); });
+}
   
 function toggleMacroSection(el) {
   if (el && el.parentElement) {
@@ -664,8 +753,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (hFr === 18 && m >= 40 && m <= 41) {
       chartCache = {};
       cmCache = {};
+      csCache = {};
+      vvCache = {};
       macroCache = {};
-      console.log('📊 Cache graphiques vidé (18h40)');
+            console.log('📊 Cache graphiques vidé (18h40)');
     }
   }, 30 * 1000);
   ['tx-qty','tx-price'].forEach(function(id) {
@@ -746,6 +837,14 @@ function toggleCard(id) {
         chargerCreuxSectorielEtInjecter(tkCS, csContainer.id);
       }
     }
+    var vvContainer = detail.querySelector('.vv-container');
+    if (vvContainer && !vvContainer.innerHTML) {
+      var tickElVV = card.querySelector('.vtick');
+      if (tickElVV) {
+        var tkVV = tickElVV.textContent.split('·')[0].trim();
+        chargerValidationValeurEtInjecter(tkVV, vvContainer.id);
+      }
+    }
     setTimeout(function() { card.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 60);
   }
   var mcContainer = document.getElementById('mc-' + id);
@@ -802,6 +901,13 @@ function rafraichirUI(data) {
       csOuverte = true;
     }
   }
+  var vvOuverte = false;
+  if (openCard) {
+    var vvSect = openCard.querySelector('.vv-container .macro-section');
+    if (vvSect && vvSect.classList.contains('open')) {
+      vvOuverte = true;
+    }
+  }
   
   if (data.contexte) majBarre(data.contexte);
   if (data.portefeuille) majPortefeuille(data.portefeuille, data.indicateurs, data.fondamentaux);
@@ -841,7 +947,14 @@ function rafraichirUI(data) {
           chargerCreuxSectorielEtInjecter(tkCS2, csContainer.id, csOuverte);
         }
       }
-      
+      var vvContainer = card.querySelector('.vv-container');
+      if (vvContainer) {
+        var tickElVV2 = card.querySelector('.vtick');
+        if (tickElVV2) {
+          var tkVV2 = tickElVV2.textContent.split('·')[0].trim();
+          chargerValidationValeurEtInjecter(tkVV2, vvContainer.id, vvOuverte);
+       }
+      }
       card.classList.add('open');
       var d = card.querySelector('.vdetail');
       if (d) d.classList.add('open');
@@ -1149,6 +1262,7 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
     + '<div class="macro-container" id="mc-' + id + '"></div>'
     + (nomPoche === 'Cyclique' ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
     + (nomPoche === 'Cyclique' ? '<div class="cs-container" id="cs-' + id + '"></div>' : '')
+    + (nomPoche === 'Cyclique' ? '<div class="vv-container" id="vv-' + id + '"></div>' : '')
     + '<div class="detail-actions-row2">'
     + '<button class="btn-tx buy" onclick="event.stopPropagation();openTx(\'Achat\',\'' + pos.ticker + '\',\'' + sn + '\')">🛒 Achat</button>'
     + '<button class="btn-tx sell" onclick="event.stopPropagation();openTx(\'Vente\',\'' + pos.ticker + '\',\'' + sn + '\')">💸 Vente</button>'
@@ -1312,6 +1426,7 @@ function genererCarteWL(v, ind, fon) {
     + '<div class="macro-container" id="mc-' + id + '"></div>'
     + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="cs-container" id="cs-' + id + '"></div>' : '')
+    + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="vv-container" id="vv-' + id + '"></div>' : '')
     + '<div class="detail-actions-row2"><button class="btn-buy-ptf" onclick="event.stopPropagation();openTx(\'Achat\',\'' + v.ticker + '\',\'' + sn + '\')">🛒 Acheter → Ptf</button></div>'
     + '<button class="btn-delete" onclick="event.stopPropagation();supprimerValeur(\'' + v.ticker + '\',\'' + sn + '\')">🗑 Supprimer de la watchlist</button>'
     + '</div></div>';
