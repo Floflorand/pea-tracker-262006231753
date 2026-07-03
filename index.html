@@ -452,6 +452,7 @@ var chartCache = {};
 var cmCache = {};
 var csCache = {};
 var vvCache = {};
+var ssCache = {};
 var macroCache = {};
 
 function chargerMacroEtInjecter(ticker, containerId, ouverture) {
@@ -618,6 +619,32 @@ function genererSectionValidationValeur(data) {
   return html;
 }
 
+function genererSectionSizingSortie(data) {
+  if (!data || !data.length) return '';
+  
+  var html = '<div class="macro-section" id="ss-section-container">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleSection(this)">';
+  html += '<span class="macro-hdr-title">Sizing & sortie</span>';
+  html += '<span class="macro-hdr-chevron">▼</span>';
+  html += '</div>';
+  html += '<div class="macro-body">';
+  
+  data.forEach(function(m) {
+    var pastilles = '';
+    for (var i = 0; i < m.importance; i++) pastilles += '•';
+    
+    html += '<div class="macro-row">';
+    html += '<span class="macro-imp">' + pastilles + '</span>';
+    html += '<span class="macro-label">' + m.label + '</span>';
+    html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
+    html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span>';
+    html += '</div>';
+  });
+  
+  html += '</div></div>';
+  return html;
+}
+
 function toggleSection(el) {
   if (el && el.parentElement) {
     el.parentElement.classList.toggle('open');
@@ -734,6 +761,42 @@ function chargerValidationValeurEtInjecter(ticker, containerId, ouverture) {
     })
     .catch(function(err) { console.warn('Erreur validation valeur', err); });
 }
+
+function chargerSizingSortieEtInjecter(ticker, containerId, ouverture) {
+  var el = document.getElementById(containerId);
+  if (!el) return;
+  
+  if (el.innerHTML) {
+    if (ouverture) {
+      var sect = el.querySelector('.macro-section');
+      if (sect) sect.classList.add('open');
+    }
+    return;
+  }
+  
+  if (ssCache[ticker]) {
+    el.innerHTML = genererSectionSizingSortie(ssCache[ticker]);
+    if (ouverture) {
+      var sect = el.querySelector('.macro-section');
+      if (sect) sect.classList.add('open');
+    }
+    return;
+  }
+  
+  fetch(urlAPI('?action=sizing_sortie&ticker=' + encodeURIComponent(ticker)))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      ssCache[ticker] = data;
+      if (el && !el.innerHTML) {
+        el.innerHTML = genererSectionSizingSortie(data);
+        if (ouverture) {
+          var sect = el.querySelector('.macro-section');
+          if (sect) sect.classList.add('open');
+        }
+      }
+    })
+    .catch(function(err) { console.warn('Erreur sizing sortie', err); });
+}
   
 function toggleMacroSection(el) {
   if (el && el.parentElement) {
@@ -756,6 +819,7 @@ document.addEventListener('DOMContentLoaded', function() {
       cmCache = {};
       csCache = {};
       vvCache = {};
+      ssCache = {};
       macroCache = {};
             console.log('📊 Cache graphiques vidé (18h40)');
     }
@@ -846,6 +910,14 @@ function toggleCard(id) {
         chargerValidationValeurEtInjecter(tkVV, vvContainer.id);
       }
     }
+    var ssContainer = detail.querySelector('.ss-container');
+    if (ssContainer && !ssContainer.innerHTML) {
+      var tickElSS = card.querySelector('.vtick');
+      if (tickElSS) {
+        var tkSS = tickElSS.textContent.split('·')[0].trim();
+        chargerSizingSortieEtInjecter(tkSS, ssContainer.id);
+      }
+    }
     setTimeout(function() { card.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 60);
   }
   var mcContainer = document.getElementById('mc-' + id);
@@ -909,6 +981,13 @@ function rafraichirUI(data) {
       vvOuverte = true;
     }
   }
+  var ssOuverte = false;
+  if (openCard) {
+    var ssSect = openCard.querySelector('.ss-container .macro-section');
+    if (ssSect && ssSect.classList.contains('open')) {
+      ssOuverte = true;
+    }
+  }
   
   if (data.contexte) majBarre(data.contexte);
   if (data.portefeuille) majPortefeuille(data.portefeuille, data.indicateurs, data.fondamentaux);
@@ -956,6 +1035,15 @@ function rafraichirUI(data) {
           chargerValidationValeurEtInjecter(tkVV2, vvContainer.id, vvOuverte);
        }
       }
+      var ssContainer = card.querySelector('.ss-container');
+      if (ssContainer) {
+        var tickElSS2 = card.querySelector('.vtick');
+        if (tickElSS2) {
+          var tkSS2 = tickElSS2.textContent.split('·')[0].trim();
+          chargerSizingSortieEtInjecter(tkSS2, ssContainer.id, ssOuverte);
+        }
+      }
+
       card.classList.add('open');
       var d = card.querySelector('.vdetail');
       if (d) d.classList.add('open');
@@ -1289,6 +1377,7 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
     + (nomPoche === 'Cyclique' ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
     + (nomPoche === 'Cyclique' ? '<div class="cs-container" id="cs-' + id + '"></div>' : '')
     + (nomPoche === 'Cyclique' ? '<div class="vv-container" id="vv-' + id + '"></div>' : '')
+    + (nomPoche === 'Cyclique' ? '<div class="ss-container" id="ss-' + id + '"></div>' : '')
     + '<div class="detail-actions-row2">'
     + '<button class="btn-tx buy" onclick="event.stopPropagation();openTx(\'Achat\',\'' + pos.ticker + '\',\'' + sn + '\')">🛒 Achat</button>'
     + '<button class="btn-tx sell" onclick="event.stopPropagation();openTx(\'Vente\',\'' + pos.ticker + '\',\'' + sn + '\')">💸 Vente</button>'
@@ -1453,6 +1542,7 @@ function genererCarteWL(v, ind, fon) {
     + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="cs-container" id="cs-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="vv-container" id="vv-' + id + '"></div>' : '')
+    + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="ss-container" id="ss-' + id + '"></div>' : '')
     + '<div class="detail-actions-row2"><button class="btn-buy-ptf" onclick="event.stopPropagation();openTx(\'Achat\',\'' + v.ticker + '\',\'' + sn + '\')">🛒 Acheter → Ptf</button></div>'
     + '<button class="btn-delete" onclick="event.stopPropagation();supprimerValeur(\'' + v.ticker + '\',\'' + sn + '\')">🗑 Supprimer de la watchlist</button>'
     + '</div></div>';
