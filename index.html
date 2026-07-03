@@ -449,11 +449,7 @@ var refreshTimer = null;
 var chartInstances = {};
 var chartMeta = {};
 var chartCache = {};
-var cmCache = {};
-var csCache = {};
-var vvCache = {};
-var ssCache = {};
-var macroCache = {};
+var detailCycliqueCache = {};
 
 function chargerMacroEtInjecter(ticker, containerId, ouverture) {
   var el = document.getElementById(containerId);
@@ -797,6 +793,70 @@ function chargerSizingSortieEtInjecter(ticker, containerId, ouverture) {
     })
     .catch(function(err) { console.warn('Erreur sizing sortie', err); });
 }
+
+function chargerDetailCycliqueEtInjecter(ticker, cardId, ouvertures) {
+  ouvertures = ouvertures || {};
+  
+  function injecter(data) {
+    var mc = document.getElementById('mc-' + cardId);
+    if (mc && !mc.innerHTML && data.macro) {
+      mc.innerHTML = genererSectionMacro(data.macro);
+      if (ouvertures.macro) {
+        var s = mc.querySelector('.macro-section');
+        if (s) s.classList.add('open');
+      }
+    }
+    
+    var cm = document.getElementById('cm-' + cardId);
+    if (cm && !cm.innerHTML && data.contexteMarche) {
+      cm.innerHTML = genererSectionContexteMarche(data.contexteMarche);
+      if (ouvertures.cm) {
+        var s = cm.querySelector('.macro-section');
+        if (s) s.classList.add('open');
+      }
+    }
+    
+    var cs = document.getElementById('cs-' + cardId);
+    if (cs && !cs.innerHTML && data.creuxSectoriel) {
+      cs.innerHTML = genererSectionCreuxSectoriel(data.creuxSectoriel);
+      if (ouvertures.cs) {
+        var s = cs.querySelector('.macro-section');
+        if (s) s.classList.add('open');
+      }
+    }
+    
+    var vv = document.getElementById('vv-' + cardId);
+    if (vv && !vv.innerHTML && data.validationValeur) {
+      vv.innerHTML = genererSectionValidationValeur(data.validationValeur);
+      if (ouvertures.vv) {
+        var s = vv.querySelector('.macro-section');
+        if (s) s.classList.add('open');
+      }
+    }
+    
+    var ss = document.getElementById('ss-' + cardId);
+    if (ss && !ss.innerHTML && data.sizingSortie) {
+      ss.innerHTML = genererSectionSizingSortie(data.sizingSortie);
+      if (ouvertures.ss) {
+        var s = ss.querySelector('.macro-section');
+        if (s) s.classList.add('open');
+      }
+    }
+  }
+  
+  if (detailCycliqueCache[ticker]) {
+    injecter(detailCycliqueCache[ticker]);
+    return;
+  }
+  
+  fetch(urlAPI('?action=detail_cyclique&ticker=' + encodeURIComponent(ticker)))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      detailCycliqueCache[ticker] = data;
+      injecter(data);
+    })
+    .catch(function(err) { console.warn('Erreur detail cyclique', err); });
+}
   
 function toggleMacroSection(el) {
   if (el && el.parentElement) {
@@ -815,12 +875,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (hFr >= 24) hFr -= 24;
     var m = now.getUTCMinutes();
     if (hFr === 18 && m >= 40 && m <= 41) {
+      macroCache = {};
       chartCache = {};
       cmCache = {};
       csCache = {};
       vvCache = {};
       ssCache = {};
-      macroCache = {};
+      detailCycliqueCache = {};
             console.log('📊 Cache graphiques vidé (18h40)');
     }
   }, 30 * 1000);
@@ -878,46 +939,17 @@ function toggleCard(id) {
         chargerGraphiqueEmbed(tk, cid, '3mo', 'line');
       }
     }
-    var mcContainer = detail.querySelector('.macro-container');
-    if (mcContainer && !mcContainer.innerHTML) {
+
+    var mcContainerCheck = detail.querySelector('.mc-container, .macro-container');
+    if (mcContainerCheck) {
       var tickEl = card.querySelector('.vtick');
       if (tickEl) {
         var tk = tickEl.textContent.split('·')[0].trim();
-        chargerMacroEtInjecter(tk, mcContainer.id);
+        var idCarte = card.id.replace('c-', '');
+        chargerDetailCycliqueEtInjecter(tk, idCarte);
       }
     }
-    var cmContainer = detail.querySelector('.cm-container');
-    if (cmContainer && !cmContainer.innerHTML) {
-      var tickEl = card.querySelector('.vtick');
-      if (tickEl) {
-        var tk = tickEl.textContent.split('·')[0].trim();
-        chargerContexteMarcheEtInjecter(tk, cmContainer.id);
-      }
-    }
-    var csContainer = detail.querySelector('.cs-container');
-    if (csContainer && !csContainer.innerHTML) {
-      var tickElCS = card.querySelector('.vtick');
-      if (tickElCS) {
-        var tkCS = tickElCS.textContent.split('·')[0].trim();
-        chargerCreuxSectorielEtInjecter(tkCS, csContainer.id);
-      }
-    }
-    var vvContainer = detail.querySelector('.vv-container');
-    if (vvContainer && !vvContainer.innerHTML) {
-      var tickElVV = card.querySelector('.vtick');
-      if (tickElVV) {
-        var tkVV = tickElVV.textContent.split('·')[0].trim();
-        chargerValidationValeurEtInjecter(tkVV, vvContainer.id);
-      }
-    }
-    var ssContainer = detail.querySelector('.ss-container');
-    if (ssContainer && !ssContainer.innerHTML) {
-      var tickElSS = card.querySelector('.vtick');
-      if (tickElSS) {
-        var tkSS = tickElSS.textContent.split('·')[0].trim();
-        chargerSizingSortieEtInjecter(tkSS, ssContainer.id);
-      }
-    }
+    
     setTimeout(function() { card.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 60);
   }
   var mcContainer = document.getElementById('mc-' + id);
@@ -953,41 +985,16 @@ function rafraichirUI(data) {
   var scrollPos = window.scrollY;
   var openCard = document.querySelector('.vc.open');
   var openId = openCard ? openCard.id : null;
-  var macroOuverte = false;
-  if (openCard) {
-    var macroSect = openCard.querySelector('.macro-section');
-    if (macroSect && macroSect.classList.contains('open')) {
-      macroOuverte = true;
-    }
-  }
-  var cmOuverte = false;
-  if (openCard) {
-    var cmSect = openCard.querySelector('.cm-container .macro-section');
-    if (cmSect && cmSect.classList.contains('open')) {
-      cmOuverte = true;
-    }
-  }
-  var csOuverte = false;
-  if (openCard) {
-    var csSect = openCard.querySelector('.cs-container .macro-section');
-    if (csSect && csSect.classList.contains('open')) {
-      csOuverte = true;
-    }
-  }
-  var vvOuverte = false;
-  if (openCard) {
-    var vvSect = openCard.querySelector('.vv-container .macro-section');
-    if (vvSect && vvSect.classList.contains('open')) {
-      vvOuverte = true;
-    }
-  }
-  var ssOuverte = false;
-  if (openCard) {
-    var ssSect = openCard.querySelector('.ss-container .macro-section');
-    if (ssSect && ssSect.classList.contains('open')) {
-      ssOuverte = true;
-    }
-  }
+
+  // Détecter quelles sections sont ouvertes avant refresh
+var ouvertures = { macro: false, cm: false, cs: false, vv: false, ss: false };
+if (openCard) {
+  ouvertures.macro = !!(openCard.querySelector('.macro-container .macro-section.open'));
+  ouvertures.cm    = !!(openCard.querySelector('.cm-container .macro-section.open'));
+  ouvertures.cs    = !!(openCard.querySelector('.cs-container .macro-section.open'));
+  ouvertures.vv    = !!(openCard.querySelector('.vv-container .macro-section.open'));
+  ouvertures.ss    = !!(openCard.querySelector('.ss-container .macro-section.open'));
+}
   
   if (data.contexte) majBarre(data.contexte);
   if (data.portefeuille) majPortefeuille(data.portefeuille, data.indicateurs, data.fondamentaux);
@@ -1003,46 +1010,12 @@ function rafraichirUI(data) {
   if (openId) {
     var card = document.getElementById(openId);
     if (card) {
-      var mcContainer = card.querySelector('.macro-container');
-      if (mcContainer) {
-        var tickEl3 = card.querySelector('.vtick');
-        if (tickEl3) {
-          var tk3 = tickEl3.textContent.split('·')[0].trim();
-          chargerMacroEtInjecter(tk3, mcContainer.id, macroOuverte);
-        }
-      }
-      var cmContainer = card.querySelector('.cm-container');
-      if (cmContainer) {
-        var tickEl2 = card.querySelector('.vtick');
-        if (tickEl2) {
-          var tk2 = tickEl2.textContent.split('·')[0].trim();
-          chargerContexteMarcheEtInjecter(tk2, cmContainer.id, cmOuverte);
-        }
-      }
-      var csContainer = card.querySelector('.cs-container');
-      if (csContainer) {
-        var tickElCS2 = card.querySelector('.vtick');
-        if (tickElCS2) {
-          var tkCS2 = tickElCS2.textContent.split('·')[0].trim();
-          chargerCreuxSectorielEtInjecter(tkCS2, csContainer.id, csOuverte);
-        }
-      }
-      var vvContainer = card.querySelector('.vv-container');
-      if (vvContainer) {
-        var tickElVV2 = card.querySelector('.vtick');
-        if (tickElVV2) {
-          var tkVV2 = tickElVV2.textContent.split('·')[0].trim();
-          chargerValidationValeurEtInjecter(tkVV2, vvContainer.id, vvOuverte);
-       }
-      }
-      var ssContainer = card.querySelector('.ss-container');
-      if (ssContainer) {
-        var tickElSS2 = card.querySelector('.vtick');
-        if (tickElSS2) {
-          var tkSS2 = tickElSS2.textContent.split('·')[0].trim();
-          chargerSizingSortieEtInjecter(tkSS2, ssContainer.id, ssOuverte);
-        }
-      }
+     var tickElR = card.querySelector('.vtick');
+     if (tickElR) {
+       var tkR = tickElR.textContent.split('·')[0].trim();
+       var idCarteR = card.id.replace('c-', '');
+       chargerDetailCycliqueEtInjecter(tkR, idCarteR, ouvertures);
+     }
 
       card.classList.add('open');
       var d = card.querySelector('.vdetail');
