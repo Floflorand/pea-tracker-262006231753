@@ -401,7 +401,6 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 <option value="">— Choisir —</option>
 </select>
 </div></div>
-</select></div></div>
 <div class="tx-row"><div class="tx-field"><span class="tx-label">Note (optionnel)</span><input type="text" class="tx-input" id="wl-note" placeholder="Commentaire...">
 </div></div>
 <button class="tx-submit buy" id="wl-submit" onclick="confirmerAjoutWL()">＋ Ajouter à la watchlist</button>
@@ -2164,8 +2163,6 @@ function confirmerAjoutWL() {
       btn.textContent = '＋ Ajouter à la watchlist';
       btn.disabled = false;
     });
-  
-  console.log('Payload envoyé:', payload);
 }
     
 function supprimerValeur(ticker, nom) {
