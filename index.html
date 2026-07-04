@@ -1450,10 +1450,10 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
     + '<span style="display:flex;align-items:center;gap:4px;font-size:8px;font-family:var(--mono);color:var(--dim)"><span style="width:12px;height:2px;background:rgba(88,166,255,.3);display:inline-block"></span>Bollinger</span>'
     + '</div>'
     + '<div class="macro-container" id="mc-' + id + '"></div>'
+    + (nomPoche === 'Cyclique' ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
     + (nomPoche === 'Stable' ? '<div class="sel-container" id="sel-' + id + '"></div>' : '')
     + (nomPoche === 'Stable' ? '<div class="tim-container" id="tim-' + id + '"></div>' : '')
     + (nomPoche === 'Stable' ? '<div class="vet-container" id="vet-' + id + '"></div>' : '')
-    + (nomPoche === 'Cyclique' ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
     + (nomPoche === 'Cyclique' ? '<div class="cs-container" id="cs-' + id + '"></div>' : '')
     + (nomPoche === 'Cyclique' ? '<div class="vv-container" id="vv-' + id + '"></div>' : '')
     + (nomPoche === 'Cyclique' ? '<div class="ss-container" id="ss-' + id + '"></div>' : '')
@@ -1618,10 +1618,10 @@ function genererCarteWL(v, ind, fon) {
     + '<span style="display:flex;align-items:center;gap:4px;font-size:8px;font-family:var(--mono);color:var(--dim)"><span style="width:12px;height:2px;background:rgba(88,166,255,.3);display:inline-block"></span>Bollinger</span>'
     + '</div>'
     + '<div class="macro-container" id="mc-' + id + '"></div>'
+    + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('stable') >= 0 ? '<div class="sel-container" id="sel-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('stable') >= 0 ? '<div class="tim-container" id="tim-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('stable') >= 0 ? '<div class="vet-container" id="vet-' + id + '"></div>' : '')
-    + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="cs-container" id="cs-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="vv-container" id="vv-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="ss-container" id="ss-' + id + '"></div>' : '')
