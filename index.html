@@ -449,6 +449,7 @@ var refreshTimer = null;
 var chartInstances = {};
 var chartMeta = {};
 var chartCache = {};
+var detailStableCache = {};
 var detailCycliqueCache = {};
 
 function chargerMacroEtInjecter(ticker, containerId, ouverture) {
@@ -641,6 +642,63 @@ function genererSectionSizingSortie(data) {
   return html;
 }
 
+function genererSectionSelection(data) {
+  if (!data || !data.length) return '';
+  var html = '<div class="macro-section" id="sel-section-container">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleSection(this)">';
+  html += '<span class="macro-hdr-title">Indicateurs de sélection</span>';
+  html += '<span class="macro-hdr-chevron">▼</span>';
+  html += '</div><div class="macro-body">';
+  data.forEach(function(m) {
+    var pastilles = '';
+    for (var i = 0; i < m.importance; i++) pastilles += '•';
+    html += '<div class="macro-row"><span class="macro-imp">' + pastilles + '</span>';
+    html += '<span class="macro-label">' + m.label + '</span>';
+    html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
+    html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function genererSectionTiming(data) {
+  if (!data || !data.length) return '';
+  var html = '<div class="macro-section" id="tim-section-container">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleSection(this)">';
+  html += '<span class="macro-hdr-title">Indicateurs de timing</span>';
+  html += '<span class="macro-hdr-chevron">▼</span>';
+  html += '</div><div class="macro-body">';
+  data.forEach(function(m) {
+    var pastilles = '';
+    for (var i = 0; i < m.importance; i++) pastilles += '•';
+    html += '<div class="macro-row"><span class="macro-imp">' + pastilles + '</span>';
+    html += '<span class="macro-label">' + m.label + '</span>';
+    html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
+    html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function genererSectionVetos(data) {
+  if (!data || !data.length) return '';
+  var html = '<div class="macro-section" id="vet-section-container">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleSection(this)">';
+  html += '<span class="macro-hdr-title">Vétos</span>';
+  html += '<span class="macro-hdr-chevron">▼</span>';
+  html += '</div><div class="macro-body">';
+  data.forEach(function(m) {
+    var pastilles = '';
+    for (var i = 0; i < m.importance; i++) pastilles += '•';
+    html += '<div class="macro-row"><span class="macro-imp">' + pastilles + '</span>';
+    html += '<span class="macro-label">' + m.label + '</span>';
+    html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
+    html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
 function toggleSection(el) {
   if (el && el.parentElement) {
     el.parentElement.classList.toggle('open');
@@ -794,6 +852,43 @@ function chargerSizingSortieEtInjecter(ticker, containerId, ouverture) {
     .catch(function(err) { console.warn('Erreur sizing sortie', err); });
 }
 
+  function chargerDetailStableEtInjecter(ticker, cardId, ouvertures) {
+  ouvertures = ouvertures || {};
+  
+  function injecter(data) {
+    var mc = document.getElementById('mc-' + cardId);
+    if (mc && !mc.innerHTML && data.macro) {
+      mc.innerHTML = genererSectionMacro(data.macro);
+      if (ouvertures.macro) mc.querySelector('.macro-section').classList.add('open');
+    }
+    var sel = document.getElementById('sel-' + cardId);
+    if (sel && !sel.innerHTML && data.selection) {
+      sel.innerHTML = genererSectionSelection(data.selection);
+      if (ouvertures.sel) sel.querySelector('.macro-section').classList.add('open');
+    }
+    var tim = document.getElementById('tim-' + cardId);
+    if (tim && !tim.innerHTML && data.timing) {
+      tim.innerHTML = genererSectionTiming(data.timing);
+      if (ouvertures.tim) tim.querySelector('.macro-section').classList.add('open');
+    }
+    var vet = document.getElementById('vet-' + cardId);
+    if (vet && !vet.innerHTML && data.vetos) {
+      vet.innerHTML = genererSectionVetos(data.vetos);
+      if (ouvertures.vet) vet.querySelector('.macro-section').classList.add('open');
+    }
+  }
+  
+  if (detailStableCache[ticker]) { injecter(detailStableCache[ticker]); return; }
+  
+  fetch(urlAPI('?action=detail_stable&ticker=' + encodeURIComponent(ticker)))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      detailStableCache[ticker] = data;
+      injecter(data);
+    })
+    .catch(function(err) { console.warn('Erreur detail stable', err); });
+}
+  
 function chargerDetailCycliqueEtInjecter(ticker, cardId, ouvertures) {
   ouvertures = ouvertures || {};
   
@@ -946,7 +1041,15 @@ function toggleCard(id) {
       if (tickEl) {
         var tk = tickEl.textContent.split('·')[0].trim();
         var idCarte = card.id.replace('c-', '');
-        chargerDetailCycliqueEtInjecter(tk, idCarte);
+    
+        // Détecter la poche depuis la carte
+        var pocheClass = card.className;
+        if (pocheClass.indexOf('pocket-s') >= 0) {
+          chargerDetailStableEtInjecter(tk, idCarte);
+        } else if (pocheClass.indexOf('pocket-c') >= 0) {
+          chargerDetailCycliqueEtInjecter(tk, idCarte);
+        }
+        // Growth à venir
       }
     }
     
@@ -1347,6 +1450,9 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
     + '<span style="display:flex;align-items:center;gap:4px;font-size:8px;font-family:var(--mono);color:var(--dim)"><span style="width:12px;height:2px;background:rgba(88,166,255,.3);display:inline-block"></span>Bollinger</span>'
     + '</div>'
     + '<div class="macro-container" id="mc-' + id + '"></div>'
+    + (nomPoche === 'Stable' ? '<div class="sel-container" id="sel-' + id + '"></div>' : '')
+    + (nomPoche === 'Stable' ? '<div class="tim-container" id="tim-' + id + '"></div>' : '')
+    + (nomPoche === 'Stable' ? '<div class="vet-container" id="vet-' + id + '"></div>' : '')
     + (nomPoche === 'Cyclique' ? '<div class="cm-container" id="cm-' + id + '"></div>' : '')
     + (nomPoche === 'Cyclique' ? '<div class="cs-container" id="cs-' + id + '"></div>' : '')
     + (nomPoche === 'Cyclique' ? '<div class="vv-container" id="vv-' + id + '"></div>' : '')
