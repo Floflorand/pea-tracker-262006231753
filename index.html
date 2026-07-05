@@ -448,6 +448,7 @@ var chartMeta = {};
 var chartCache = {};
 var detailStableCache = {};
 var detailCycliqueCache = {};
+var detailGrowthCache = {};
 
 function chargerMacroEtInjecter(ticker, containerId, ouverture) {
   var el = document.getElementById(containerId);
@@ -696,6 +697,82 @@ function genererSectionVetos(data) {
   return html;
 }
 
+function genererSectionCroissance(data) {
+  if (!data || !data.length) return '';
+  var html = '<div class="macro-section" id="cro-section-container">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleSection(this)">';
+  html += '<span class="macro-hdr-title">Croissance</span>';
+  html += '<span class="macro-hdr-chevron">▼</span>';
+  html += '</div><div class="macro-body">';
+  data.forEach(function(m) {
+    var pastilles = '';
+    for (var i = 0; i < m.importance; i++) pastilles += '•';
+    html += '<div class="macro-row"><span class="macro-imp">' + pastilles + '</span>';
+    html += '<span class="macro-label">' + m.label + '</span>';
+    html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
+    html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function genererSectionSolidite(data) {
+  if (!data || !data.length) return '';
+  var html = '<div class="macro-section" id="sol-section-container">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleSection(this)">';
+  html += '<span class="macro-hdr-title">Solidité financière</span>';
+  html += '<span class="macro-hdr-chevron">▼</span>';
+  html += '</div><div class="macro-body">';
+  data.forEach(function(m) {
+    var pastilles = '';
+    for (var i = 0; i < m.importance; i++) pastilles += '•';
+    html += '<div class="macro-row"><span class="macro-imp">' + pastilles + '</span>';
+    html += '<span class="macro-label">' + m.label + '</span>';
+    html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
+    html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function genererSectionValorisation(data) {
+  if (!data || !data.length) return '';
+  var html = '<div class="macro-section" id="val-section-container">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleSection(this)">';
+  html += '<span class="macro-hdr-title">Valorisation</span>';
+  html += '<span class="macro-hdr-chevron">▼</span>';
+  html += '</div><div class="macro-body">';
+  data.forEach(function(m) {
+    var pastilles = '';
+    for (var i = 0; i < m.importance; i++) pastilles += '•';
+    html += '<div class="macro-row"><span class="macro-imp">' + pastilles + '</span>';
+    html += '<span class="macro-label">' + m.label + '</span>';
+    html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
+    html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function genererSectionCatalyseurElig(data) {
+  if (!data || !data.length) return '';
+  var html = '<div class="macro-section" id="cat-section-container">';
+  html += '<div class="macro-hdr" onclick="event.stopPropagation();toggleSection(this)">';
+  html += '<span class="macro-hdr-title">Catalyseur & éligibilité</span>';
+  html += '<span class="macro-hdr-chevron">▼</span>';
+  html += '</div><div class="macro-body">';
+  data.forEach(function(m) {
+    var pastilles = '';
+    for (var i = 0; i < m.importance; i++) pastilles += '•';
+    html += '<div class="macro-row"><span class="macro-imp">' + pastilles + '</span>';
+    html += '<span class="macro-label">' + m.label + '</span>';
+    html += '<span class="macro-val ' + (m.couleur || '') + '">' + m.valeur + (m.unite || '') + '</span>';
+    html += '<span class="macro-seuils">' + (m.seuilText || '—') + '</span></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+  
 function toggleSection(el) {
   if (el && el.parentElement) {
     el.parentElement.classList.toggle('open');
@@ -949,6 +1026,48 @@ function chargerDetailCycliqueEtInjecter(ticker, cardId, ouvertures) {
     })
     .catch(function(err) { console.warn('Erreur detail cyclique', err); });
 }
+
+function chargerDetailGrowthEtInjecter(ticker, cardId, ouvertures) {
+  ouvertures = ouvertures || {};
+  
+  function injecter(data) {
+    var mc = document.getElementById('mc-' + cardId);
+    if (mc && !mc.innerHTML && data.macro) {
+      mc.innerHTML = genererSectionMacro(data.macro);
+      if (ouvertures.macro) mc.querySelector('.macro-section').classList.add('open');
+    }
+    var cro = document.getElementById('cro-' + cardId);
+    if (cro && !cro.innerHTML && data.croissance) {
+      cro.innerHTML = genererSectionCroissance(data.croissance);
+      if (ouvertures.cro) cro.querySelector('.macro-section').classList.add('open');
+    }
+    var sol = document.getElementById('sol-' + cardId);
+    if (sol && !sol.innerHTML && data.solidite) {
+      sol.innerHTML = genererSectionSolidite(data.solidite);
+      if (ouvertures.sol) sol.querySelector('.macro-section').classList.add('open');
+    }
+    var val = document.getElementById('val-' + cardId);
+    if (val && !val.innerHTML && data.valorisation) {
+      val.innerHTML = genererSectionValorisation(data.valorisation);
+      if (ouvertures.val) val.querySelector('.macro-section').classList.add('open');
+    }
+    var cat = document.getElementById('cat-' + cardId);
+    if (cat && !cat.innerHTML && data.catalyseurElig) {
+      cat.innerHTML = genererSectionCatalyseurElig(data.catalyseurElig);
+      if (ouvertures.cat) cat.querySelector('.macro-section').classList.add('open');
+    }
+  }
+  
+  if (detailGrowthCache[ticker]) { injecter(detailGrowthCache[ticker]); return; }
+  
+  fetch(urlAPI('?action=detail_growth&ticker=' + encodeURIComponent(ticker)))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      detailGrowthCache[ticker] = data;
+      injecter(data);
+    })
+    .catch(function(err) { console.warn('Erreur detail growth', err); });
+}
   
 function toggleMacroSection(el) {
   if (el && el.parentElement) {
@@ -1045,8 +1164,9 @@ function toggleCard(id) {
           chargerDetailStableEtInjecter(tk, idCarte);
         } else if (pocheClass.indexOf('pocket-c') >= 0) {
           chargerDetailCycliqueEtInjecter(tk, idCarte);
+        } else if (pocheClass.indexOf('pocket-g') >= 0) {
+          chargerDetailGrowthEtInjecter(tk, idCarte);
         }
-        // Growth à venir
       }
     }
     
@@ -1094,6 +1214,14 @@ if (openCard) {
   ouvertures.cs    = !!(openCard.querySelector('.cs-container .macro-section.open'));
   ouvertures.vv    = !!(openCard.querySelector('.vv-container .macro-section.open'));
   ouvertures.ss    = !!(openCard.querySelector('.ss-container .macro-section.open'));
+var ouverturesGrowth = { macro: false, cro: false, sol: false, val: false, cat: false };
+if (openCard) {
+  ouverturesGrowth.macro = !!(openCard.querySelector('.macro-container .macro-section.open'));
+  ouverturesGrowth.cro   = !!(openCard.querySelector('.cro-container .macro-section.open'));
+  ouverturesGrowth.sol   = !!(openCard.querySelector('.sol-container .macro-section.open'));
+  ouverturesGrowth.val   = !!(openCard.querySelector('.val-container .macro-section.open'));
+  ouverturesGrowth.cat   = !!(openCard.querySelector('.cat-container .macro-section.open'));
+}
 }
   
   if (data.contexte) majBarre(data.contexte);
@@ -1110,12 +1238,20 @@ if (openCard) {
   if (openId) {
     var card = document.getElementById(openId);
     if (card) {
-     var tickElR = card.querySelector('.vtick');
-     if (tickElR) {
-       var tkR = tickElR.textContent.split('·')[0].trim();
-       var idCarteR = card.id.replace('c-', '');
-       chargerDetailCycliqueEtInjecter(tkR, idCarteR, ouvertures);
-     }
+      var tickElR = card.querySelector('.vtick');
+      if (tickElR) {
+        var tkR = tickElR.textContent.split('·')[0].trim();
+        var idCarteR = card.id.replace('c-', '');
+  
+        var pocheClassR = card.className;
+        if (pocheClassR.indexOf('pocket-s') >= 0) {
+          chargerDetailStableEtInjecter(tkR, idCarteR, ouvertures);
+        } else if (pocheClassR.indexOf('pocket-c') >= 0) {
+          chargerDetailCycliqueEtInjecter(tkR, idCarteR, ouvertures);
+        } else if (pocheClassR.indexOf('pocket-g') >= 0) {
+          chargerDetailGrowthEtInjecter(tkR, idCarteR, ouverturesGrowth);
+        }
+      }
 
       card.classList.add('open');
       var d = card.querySelector('.vdetail');
@@ -1454,6 +1590,10 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
     + (nomPoche === 'Cyclique' ? '<div class="cs-container" id="cs-' + id + '"></div>' : '')
     + (nomPoche === 'Cyclique' ? '<div class="vv-container" id="vv-' + id + '"></div>' : '')
     + (nomPoche === 'Cyclique' ? '<div class="ss-container" id="ss-' + id + '"></div>' : '')
+    + (nomPoche === 'Growth' ? '<div class="cro-container" id="cro-' + id + '"></div>' : '')
+    + (nomPoche === 'Growth' ? '<div class="sol-container" id="sol-' + id + '"></div>' : '')
+    + (nomPoche === 'Growth' ? '<div class="val-container" id="val-' + id + '"></div>' : '')
+    + (nomPoche === 'Growth' ? '<div class="cat-container" id="cat-' + id + '"></div>' : '')
     + '<div class="detail-actions-row2">'
     + '<button class="btn-tx buy" onclick="event.stopPropagation();openTx(\'Achat\',\'' + pos.ticker + '\',\'' + sn + '\')">🛒 Achat</button>'
     + '<button class="btn-tx sell" onclick="event.stopPropagation();openTx(\'Vente\',\'' + pos.ticker + '\',\'' + sn + '\')">💸 Vente</button>'
@@ -1622,6 +1762,10 @@ function genererCarteWL(v, ind, fon) {
     + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="cs-container" id="cs-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="vv-container" id="vv-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('cycl') >= 0 ? '<div class="ss-container" id="ss-' + id + '"></div>' : '')
+    + ((v.poche || '').toLowerCase().indexOf('grow') >= 0 ? '<div class="cro-container" id="cro-' + id + '"></div>' : '')
+    + ((v.poche || '').toLowerCase().indexOf('grow') >= 0 ? '<div class="sol-container" id="sol-' + id + '"></div>' : '')
+    + ((v.poche || '').toLowerCase().indexOf('grow') >= 0 ? '<div class="val-container" id="val-' + id + '"></div>' : '')
+    + ((v.poche || '').toLowerCase().indexOf('grow') >= 0 ? '<div class="cat-container" id="cat-' + id + '"></div>' : '')
     + '<div class="detail-actions-row2"><button class="btn-buy-ptf" onclick="event.stopPropagation();openTx(\'Achat\',\'' + v.ticker + '\',\'' + sn + '\')">🛒 Acheter → Ptf</button></div>'
     + '<button class="btn-delete" onclick="event.stopPropagation();supprimerValeur(\'' + v.ticker + '\',\'' + sn + '\')">🗑 Supprimer de la watchlist</button>'
     + '</div></div>';
