@@ -2706,15 +2706,24 @@ function enregistrerPMI(dateISO) {
 // ══════════════════════════════════════
 
 function ouvrirModaleSalons(dateISO) {
+  // Affichage immediat avec les donnees locales
+  afficherModaleSalons(dateISO);
+
+  // Rafraichissement en arriere-plan (pour couvrir le cas ou d'autres saisies auraient ete faites depuis un autre appareil)
   fetch(urlAPI('?action=calendrier'))
     .then(function(r){ return r.json(); })
     .then(function(events){
-      calEvents = events || calEvents;
-      afficherModaleSalons(dateISO);
+      if (!events) return;
+      var avant = calEvents.length;
+      calEvents = events;
+      // On ne re-render que si le modal est encore ouvert ET qu'il y a eu un changement
+      var modal = document.getElementById('salons-modal');
+      if (modal && events.length !== avant) {
+        modal.remove();
+        afficherModaleSalons(dateISO);
+      }
     })
-    .catch(function(){
-      afficherModaleSalons(dateISO);
-    });
+    .catch(function(){});
 }
 
 function afficherModaleSalons(dateISO) {
@@ -2736,7 +2745,7 @@ function afficherModaleSalons(dateISO) {
     { cle: 'asco',    nom: 'ASCO (Chicago)',                        motCle: 'ASCO',       lien: 'https://www.asco.org/annual-meeting',                   periode: '~ fin mai / debut juin' },
     { cle: 'ada',     nom: 'ADA Scientific Sessions',               motCle: 'ADA',        lien: 'https://professional.diabetes.org/scientific-sessions', periode: '~ mi-juin' },
     { cle: 'defense', nom: 'Salon defense (Eurosatory/Le Bourget)', motCle: 'Eurosatory', lien: ['https://www.eurosatory.com/', 'https://www.siae.fr/'],  periode: '~ mi-juin (biennal)' },
-    { cle: 'esmo',    nom: 'ESMO Congress',                         motCle: 'ESMO',       lien: 'https://www.esmo.org/meeting-calendar',                 periode: '~ mi-septembre' }
+    { cle: 'esmo',    nom: 'ESMO Congress',                         motCle: 'ESMO',       lien: 'https://www.esmo.org/meetings/esmo-congress',           periode: '~ mi-septembre' }
   ];
 
   var anneeCible = new Date(dateISO + 'T00:00:00').getFullYear() + 1;
