@@ -2529,7 +2529,12 @@ function selectCalDay(dateISO) {
   for (var i = 0; i < ev.length; i++) {
     var e = ev[i];
 
-    html += '• ' + (e.type || '') + ' — ' + (e.nom || '') + '<br>';
+    var libelle = e.nom || '';
+    if (e.type && e.type.toLowerCase() === 'salon' && e.description) {
+      // Pour les salons, le nom est vide, on affiche la description
+      libelle = e.description;
+    }
+    html += '• ' + (e.type || '') + ' — ' + libelle + '<br>';
 
     if (e.type && e.type.toLowerCase().indexOf('pmi') >= 0) {
       var d = new Date(e.date + 'T00:00:00');
@@ -2746,11 +2751,10 @@ function enregistrerPMI(dateISO) {
 
   var rowsHTML = '';
   salons.forEach(function(s) {
-    rowsHTML +=
-      '<div style="border:1px solid var(--border-dim);border-radius:6px;padding:10px;margin-bottom:8px;background:var(--bg2);">' +
+    var lienHTML = '<a href="' + s.lien + '" target="_blank" rel="noopener" style="font-size:11px;color:varer-radius:6px;padding:10px;margin-bottom:8px;background:var(--bg2);">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
           '<b>' + s.nom + '</b>' +
-          '' + s.lien + ';color:var(--blue);text-decoration:none;">Site officiel</a>' +
+          lienHTML +
         '</div>' +
         '<div style="font-size:10px;color:var(--dim);margin-bottom:8px;">' + s.periode + '</div>' +
         '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
@@ -2781,9 +2785,13 @@ function enregistrerPMI(dateISO) {
     var deb = document.getElementById('sal-' + s.cle + '-debut');
     var fin = document.getElementById('sal-' + s.cle + '-fin');
     if (deb && fin) {
+      fin.dataset.autoRempli = ''; // trace de la dernière valeur auto-remplie
       deb.addEventListener('change', function() {
-        if (!fin.value && deb.value) {
+        // Cas 1 : fin vide → remplir
+        // Cas 2 : fin encore égale à la précédente auto-valeur (l'utilisateur n'a pas modifié manuellement) → remettre à jour
+        if (!fin.value || fin.value === fin.dataset.autoRempli) {
           fin.value = deb.value;
+          fin.dataset.autoRempli = deb.value;
         }
       });
     }
@@ -2817,13 +2825,10 @@ function enregistrerSalons(dateISO) {
     .then(function(r){ return r.json(); })
     .then(function(res){
       // Marquer comme traité SEULEMENT si tous les salons ont été saisis (rien de reporté)
-      if (reportes.length === 0) {
-        localStorage.setItem('salons_done_' + dateISO, '1');
-      } else {
-        // Reporter : on marque un flag "à revoir dans 1 mois"
+      if (reportes.length > 0) {
         var relance = new Date();
         relance.setMonth(relance.getMonth() + 1);
-        localStorage.setItem('salons_relance_' + dateISO, relance.toISOString().substring(0,10));
+        payload.__relanceAu = relance.toISOString().substring(0,10);
       }
       var m = document.getElementById('salons-modal');
       if (m) m.remove();
