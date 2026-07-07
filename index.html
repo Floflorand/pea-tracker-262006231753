@@ -2706,6 +2706,18 @@ function enregistrerPMI(dateISO) {
 // ══════════════════════════════════════
 
 function ouvrirModaleSalons(dateISO) {
+  fetch(urlAPI('?action=calendrier'))
+    .then(function(r){ return r.json(); })
+    .then(function(events){
+      calEvents = events || calEvents;
+      afficherModaleSalons(dateISO);
+    })
+    .catch(function(){
+      afficherModaleSalons(dateISO);
+    });
+}
+
+function afficherModaleSalons(dateISO) {
   var m = document.getElementById('salons-modal');
   if (!m) {
     m = document.createElement('div');
@@ -2718,13 +2730,13 @@ function ouvrirModaleSalons(dateISO) {
   }
 
   var tousSalons = [
-    { cle: 'ces',     nom: 'CES (Las Vegas)',                       motCle: 'CES',     lien: 'https://www.ces.tech/',                                 periode: '~ debut janvier' },
-    { cle: 'mwc',     nom: 'MWC (Barcelone)',                       motCle: 'MWC',     lien: 'https://www.mwcbarcelona.com/',                         periode: '~ fin fevrier / debut mars' },
-    { cle: 'ww',      nom: 'Watches & Wonders (Geneve)',            motCle: 'Watches', lien: 'https://www.watchesandwonders.com/',                    periode: '~ debut avril' },
-    { cle: 'asco',    nom: 'ASCO (Chicago)',                        motCle: 'ASCO',    lien: 'https://www.asco.org/annual-meeting',                   periode: '~ fin mai / debut juin' },
-    { cle: 'ada',     nom: 'ADA Scientific Sessions',               motCle: 'ADA',     lien: 'https://professional.diabetes.org/scientific-sessions', periode: '~ mi-juin' },
-    { cle: 'defense', nom: 'Salon defense (Eurosatory/Le Bourget)', motCle: 'defense', lien: 'https://www.eurosatory.com/',                           periode: '~ mi-juin (biennal)' },
-    { cle: 'esmo',    nom: 'ESMO Congress',                         motCle: 'ESMO',    lien: 'https://www.esmo.org/meeting-calendar',                 periode: '~ mi-septembre' }
+    { cle: 'ces',     nom: 'CES (Las Vegas)',                       motCle: 'CES',        lien: 'https://www.ces.tech/',                                 periode: '~ debut janvier' },
+    { cle: 'mwc',     nom: 'MWC (Barcelone)',                       motCle: 'MWC',        lien: 'https://www.mwcbarcelona.com/',                         periode: '~ fin fevrier / debut mars' },
+    { cle: 'ww',      nom: 'Watches & Wonders (Geneve)',            motCle: 'Watches',    lien: 'https://www.watchesandwonders.com/',                    periode: '~ debut avril' },
+    { cle: 'asco',    nom: 'ASCO (Chicago)',                        motCle: 'ASCO',       lien: 'https://www.asco.org/annual-meeting',                   periode: '~ fin mai / debut juin' },
+    { cle: 'ada',     nom: 'ADA Scientific Sessions',               motCle: 'ADA',        lien: 'https://professional.diabetes.org/scientific-sessions', periode: '~ mi-juin' },
+    { cle: 'defense', nom: 'Salon defense (Eurosatory/Le Bourget)', motCle: 'Eurosatory', lien: 'https://www.eurosatory.com/',                           periode: '~ mi-juin (biennal)' },
+    { cle: 'esmo',    nom: 'ESMO Congress',                         motCle: 'ESMO',       lien: 'https://www.esmo.org/meeting-calendar',                 periode: '~ mi-septembre' }
   ];
 
   var anneeCible = new Date(dateISO + 'T00:00:00').getFullYear() + 1;
@@ -2752,14 +2764,14 @@ function ouvrirModaleSalons(dateISO) {
   var parts = [];
   parts.push('<div style="background:var(--bg);padding:20px;border-radius:8px;max-width:520px;width:100%;font-size:14px;max-height:90vh;overflow-y:auto;">');
   parts.push('<h3 style="margin:0 0 6px 0;">Dates des salons ' + anneeCible + '</h3>');
-  parts.push('<div style="font-size:11px;color:var(--dim);margin-bottom:14px;">Remplis les dates connues. Coche "date non dispo" pour reporter au prochain rappel (dans 1 mois).</div>');
+  parts.push('<div style="font-size:11px;color:var(--dim);margin-bottom:14px;">Remplis les dates. Un salon laisse vide declenche un rappel dans 1 mois.</div>');
 
   for (var i = 0; i < salons.length; i++) {
     var s = salons[i];
     parts.push('<div style="border:1px solid var(--border-dim);border-radius:6px;padding:10px;margin-bottom:8px;background:var(--bg2);">');
-    parts.push('<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">');
+    parts.push('<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;">');
     parts.push('<b>' + s.nom + '</b>');
-    parts.push('' + s.lien + 'oration:underline;">Site officiel</a>');
+    parts.push('<span id="lien-' + s.cle + '"></span>');
     parts.push('</div>');
     parts.push('<div style="font-size:10px;color:var(--dim);margin-bottom:8px;">' + s.periode + '</div>');
     parts.push('<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">');
@@ -2779,6 +2791,20 @@ function ouvrirModaleSalons(dateISO) {
   m.innerHTML = parts.join('');
 
   salons.forEach(function(s) {
+    var placeholder = document.getElementById('lien-' + s.cle);
+    if (placeholder) {
+      var a = document.createElement('a');
+      a.href = s.lien;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = 'Site officiel';
+      a.style.fontSize = '11px';
+      a.style.color = '#58a6ff';
+      a.style.textDecoration = 'underline';
+      a.style.whiteSpace = 'nowrap';
+      placeholder.appendChild(a);
+    }
+
     var deb = document.getElementById('sal-' + s.cle + '-debut');
     var fin = document.getElementById('sal-' + s.cle + '-fin');
     if (deb && fin) {
@@ -2799,36 +2825,41 @@ function enregistrerSalons(dateISO) {
   var reportes = [];
 
   cles.forEach(function(c) {
+    var debEl = document.getElementById('sal-' + c + '-debut');
+    if (!debEl) return;
+
     var na = document.getElementById('sal-' + c + '-na');
-    if (na && na.checked) {
-      reportes.push(c);
-      return; // pas envoyé au backend
-    }
-    var d = document.getElementById('sal-' + c + '-debut').value;
-    var f = document.getElementById('sal-' + c + '-fin').value;
-    if (d && f) {
+    var d  = debEl.value;
+    var f  = document.getElementById('sal-' + c + '-fin').value;
+
+    if (d && f && (!na || !na.checked)) {
       payload[c] = { debut: d, fin: f };
+    } else {
+      reportes.push(c);
     }
   });
 
   if (Object.keys(payload).length === 0 && reportes.length === 0) {
-    alert('Aucune date saisie.');
+    alert('Aucune saisie.');
     return;
+  }
+
+  if (reportes.length > 0) {
+    var relance = new Date();
+    relance.setMonth(relance.getMonth() + 1);
+    payload.__relanceAu = relance.toISOString().substring(0,10);
   }
 
   fetch(urlAPI('?action=maj_salons&payload=' + encodeURIComponent(JSON.stringify(payload))))
     .then(function(r){ return r.json(); })
     .then(function(res){
-      // Marquer comme traité SEULEMENT si tous les salons ont été saisis (rien de reporté)
-      if (reportes.length > 0) {
-        var relance = new Date();
-        relance.setMonth(relance.getMonth() + 1);
-        payload.__relanceAu = relance.toISOString().substring(0,10);
+      if (reportes.length === 0) {
+        localStorage.setItem('salons_done_' + dateISO, '1');
       }
       var m = document.getElementById('salons-modal');
       if (m) m.remove();
       chargerDonnees();
-      console.log('✅ Salons : ' + (res.nbAjoutes || 0) + ' ligne(s) ajoutée(s). Reportés : ' + reportes.length);
+      console.log('Salons : ' + (res.nbAjoutes || 0) + ' ligne(s) ajoutee(s). Reportes : ' + reportes.length);
     })
     .catch(function(err){
       alert('Erreur : ' + err.message);
