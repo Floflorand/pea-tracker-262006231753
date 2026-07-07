@@ -2705,7 +2705,7 @@ function enregistrerPMI(dateISO) {
 //  MODAL SAISIE DATES SALONS
 // ══════════════════════════════════════
 
-  function ouvrirModaleSalons(dateISO) {
+function ouvrirModaleSalons(dateISO) {
   var m = document.getElementById('salons-modal');
   if (!m) {
     m = document.createElement('div');
@@ -2749,46 +2749,41 @@ function enregistrerPMI(dateISO) {
     return;
   }
 
-  var rowsHTML = '';
-  salons.forEach(function(s) {
-    var lienHTML = '<a href="' + s.lien + '" target="_blank" rel="noopener" style="font-size:11px;color:varer-radius:6px;padding:10px;margin-bottom:8px;background:var(--bg2);">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-          '<b>' + s.nom + '</b>' +
-          lienHTML +
-        '</div>' +
-        '<div style="font-size:10px;color:var(--dim);margin-bottom:8px;">' + s.periode + '</div>' +
-        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
-          '<label style="font-size:12px;">Debut <input id="sal-' + s.cle + '-debut" type="date" style="font-size:12px;"></label>' +
-          '<label style="font-size:12px;">Fin <input id="sal-' + s.cle + '-fin" type="date" style="font-size:12px;"></label>' +
-          '<label style="font-size:11px;color:var(--dim);margin-left:auto;">' +
-            '<input id="sal-' + s.cle + '-na" type="checkbox"> date non dispo' +
-          '</label>' +
-        '</div>' +
-      '</div>';
-  });
+  var parts = [];
+  parts.push('<div style="background:var(--bg);padding:20px;border-radius:8px;max-width:520px;width:100%;font-size:14px;max-height:90vh;overflow-y:auto;">');
+  parts.push('<h3 style="margin:0 0 6px 0;">Dates des salons ' + anneeCible + '</h3>');
+  parts.push('<div style="font-size:11px;color:var(--dim);margin-bottom:14px;">Remplis les dates connues. Coche "date non dispo" pour reporter au prochain rappel (dans 1 mois).</div>');
 
-  m.innerHTML =
-    '<div style="background:var(--bg);padding:20px;border-radius:8px;max-width:520px;width:100%;font-size:14px;max-height:90vh;overflow-y:auto;">' +
-      '<h3 style="margin:0 0 6px 0;">Dates des salons ' + anneeCible + '</h3>' +
-      '<div style="font-size:11px;color:var(--dim);margin-bottom:14px;">' +
-        'Remplis les dates connues. Coche "date non dispo" pour reporter au prochain rappel (dans 1 mois).' +
-      '</div>' +
-      rowsHTML +
-      '<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">' +
-        '<button onclick="document.getElementById(\'salons-modal\').remove()">Annuler</button>' +
-        '<button onclick="enregistrerSalons(\'' + dateISO + '\')" style="background:var(--blue);color:#fff;padding:6px 14px;border:none;border-radius:4px;">Valider</button>' +
-      '</div>' +
-    '</div>';
+  for (var i = 0; i < salons.length; i++) {
+    var s = salons[i];
+    parts.push('<div style="border:1px solid var(--border-dim);border-radius:6px;padding:10px;margin-bottom:8px;background:var(--bg2);">');
+    parts.push('<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">');
+    parts.push('<b>' + s.nom + '</b>');
+    parts.push('' + s.lien + 'oration:underline;">Site officiel</a>');
+    parts.push('</div>');
+    parts.push('<div style="font-size:10px;color:var(--dim);margin-bottom:8px;">' + s.periode + '</div>');
+    parts.push('<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">');
+    parts.push('<label style="font-size:12px;">Debut <input id="sal-' + s.cle + '-debut" type="date" style="font-size:12px;"></label>');
+    parts.push('<label style="font-size:12px;">Fin <input id="sal-' + s.cle + '-fin" type="date" style="font-size:12px;"></label>');
+    parts.push('<label style="font-size:11px;color:var(--dim);margin-left:auto;"><input id="sal-' + s.cle + '-na" type="checkbox"> date non dispo</label>');
+    parts.push('</div>');
+    parts.push('</div>');
+  }
 
-  // Auto-remplissage : date de fin recoit la date de debut si vide
+  parts.push('<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">');
+  parts.push('<button onclick="document.getElementById(\'salons-modal\').remove()">Annuler</button>');
+  parts.push('<button onclick="enregistrerSalons(\'' + dateISO + '\')" style="background:var(--blue);color:#fff;padding:6px 14px;border:none;border-radius:4px;">Valider</button>');
+  parts.push('</div>');
+  parts.push('</div>');
+
+  m.innerHTML = parts.join('');
+
   salons.forEach(function(s) {
     var deb = document.getElementById('sal-' + s.cle + '-debut');
     var fin = document.getElementById('sal-' + s.cle + '-fin');
     if (deb && fin) {
-      fin.dataset.autoRempli = ''; // trace de la dernière valeur auto-remplie
+      fin.dataset.autoRempli = '';
       deb.addEventListener('change', function() {
-        // Cas 1 : fin vide → remplir
-        // Cas 2 : fin encore égale à la précédente auto-valeur (l'utilisateur n'a pas modifié manuellement) → remettre à jour
         if (!fin.value || fin.value === fin.dataset.autoRempli) {
           fin.value = deb.value;
           fin.dataset.autoRempli = deb.value;
