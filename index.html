@@ -2735,7 +2735,7 @@ function afficherModaleSalons(dateISO) {
     { cle: 'ww',      nom: 'Watches & Wonders (Geneve)',            motCle: 'Watches',    lien: 'https://www.watchesandwonders.com/',                    periode: '~ debut avril' },
     { cle: 'asco',    nom: 'ASCO (Chicago)',                        motCle: 'ASCO',       lien: 'https://www.asco.org/annual-meeting',                   periode: '~ fin mai / debut juin' },
     { cle: 'ada',     nom: 'ADA Scientific Sessions',               motCle: 'ADA',        lien: 'https://professional.diabetes.org/scientific-sessions', periode: '~ mi-juin' },
-    { cle: 'defense', nom: 'Salon defense (Eurosatory/Le Bourget)', motCle: 'Eurosatory', lien: 'https://www.eurosatory.com/',                           periode: '~ mi-juin (biennal)' },
+    { cle: 'defense', nom: 'Salon defense (Eurosatory/Le Bourget)', motCle: 'Eurosatory', lien: ['https://www.eurosatory.com/', 'https://www.siae.fr/'],  periode: '~ mi-juin (biennal)' },
     { cle: 'esmo',    nom: 'ESMO Congress',                         motCle: 'ESMO',       lien: 'https://www.esmo.org/meeting-calendar',                 periode: '~ mi-septembre' }
   ];
 
@@ -2793,16 +2793,21 @@ function afficherModaleSalons(dateISO) {
   salons.forEach(function(s) {
     var placeholder = document.getElementById('lien-' + s.cle);
     if (placeholder) {
-      var a = document.createElement('a');
-      a.href = s.lien;
-      a.target = '_blank';
-      a.rel = 'noopener';
-      a.textContent = 'Site officiel';
-      a.style.fontSize = '11px';
-      a.style.color = '#58a6ff';
-      a.style.textDecoration = 'underline';
-      a.style.whiteSpace = 'nowrap';
-      placeholder.appendChild(a);
+      var liens = Array.isArray(s.lien) ? s.lien : [s.lien];
+      var libelles = liens.length > 1 ? ['Eurosatory', 'Le Bourget'] : ['Site officiel'];
+      liens.forEach(function(url, idx) {
+        var a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = libelles[idx] || 'Site officiel';
+        a.style.fontSize = '11px';
+        a.style.color = '#58a6ff';
+        a.style.textDecoration = 'underline';
+        a.style.whiteSpace = 'nowrap';
+        a.style.marginLeft = idx > 0 ? '8px' : '0';
+        placeholder.appendChild(a);
+      });
     }
 
     var deb = document.getElementById('sal-' + s.cle + '-debut');
@@ -2845,7 +2850,7 @@ function enregistrerSalons(dateISO) {
   }
 
   if (reportes.length > 0) {
-    var relance = new Date();
+    var relance = new Date(dateISO + 'T00:00:00');
     relance.setMonth(relance.getMonth() + 1);
     payload.__relanceAu = relance.toISOString().substring(0,10);
   }
