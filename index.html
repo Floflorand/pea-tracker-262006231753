@@ -3053,38 +3053,16 @@ function afficherModaleOPEP(dateISO) {
     document.body.appendChild(m);
   }
 
-  // Pour OPEP+ on saisit les 2 prochaines ministérielles glissantes
-  // On regarde combien de reunions OPEP+ sont deja saisies avec une date future ou = aujourd'hui
-  var aujourdhui = new Date().toISOString().substring(0, 10);
-  var futures = 0;
-  for (var i = 0; i < calEvents.length; i++) {
-    var e = calEvents[i];
-    if (!e.date || !e.type) continue;
-    if (e.type.toLowerCase() !== 'réunion opep+') continue;
-    if (e.date >= aujourdhui) futures++;
-  }
-
-  if (futures >= 2) {
-    alert('Les 2 prochaines réunions OPEP+ sont déjà saisies');
-    localStorage.setItem('opep_done_' + dateISO, '1');
-    m.remove();
-    chargerDonnees();
-    return;
-  }
-
   var parts = [];
   parts.push('<div style="background:var(--bg);padding:20px;border-radius:8px;max-width:520px;width:100%;font-size:14px;max-height:90vh;overflow-y:auto;">');
-  parts.push('<h3 style="margin:0 0 6px 0;">Dates OPEP+ (12 prochains mois)</h3>');
-  parts.push('<div style="font-size:11px;color:var(--dim);margin-bottom:8px;">Saisir les 2 prochaines réunions ministérielles OPEP+. Laisse vide ce qui n\'est pas encore annoncé.</div>');
+  parts.push('<h3 style="margin:0 0 6px 0;">Prochaine réunion OPEP+</h3>');
+  parts.push('<div style="font-size:11px;color:var(--dim);margin-bottom:8px;">Saisir la date affichée dans "Upcoming" sur Forex Factory. Laisse vide si non annoncée.</div>');
   parts.push('<div id="lien-opep" style="margin-bottom:14px;"></div>');
-  parts.push('<div style="font-size:11px;color:var(--dim);margin-bottom:6px;">' + futures + '/2 déjà saisies à venir</div>');
 
-  for (var j = 1; j <= 2; j++) {
-    parts.push('<div style="border:1px solid var(--border-dim);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:var(--bg2);display:flex;align-items:center;gap:10px;">');
-    parts.push('<b style="min-width:110px;">Réunion ' + j + '</b>');
-    parts.push('<input id="opep-r' + j + '" type="date" style="font-size:12px;">');
-    parts.push('</div>');
-  }
+  parts.push('<div style="border:1px solid var(--border-dim);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:var(--bg2);display:flex;align-items:center;gap:10px;">');
+  parts.push('<b style="min-width:110px;">Date</b>');
+  parts.push('<input id="opep-r1" type="date" style="font-size:12px;">');
+  parts.push('</div>');
 
   parts.push('<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">');
   parts.push('<button onclick="document.getElementById(\'opep-modal\').remove()">Annuler</button>');
@@ -3094,14 +3072,13 @@ function afficherModaleOPEP(dateISO) {
 
   m.innerHTML = parts.join('');
 
-  // Injection du lien officiel en JS pur
   var placeholder = document.getElementById('lien-opep');
   if (placeholder) {
     var a = document.createElement('a');
-    a.href = 'https://www.opec.org/press-room/press-releases.html';
+    a.href = 'https://www.forexfactory.com/calendar/437-opec-meetings';
     a.target = '_blank';
     a.rel = 'noopener';
-    a.textContent = 'Site officiel OPEP';
+    a.textContent = 'Calendrier OPEP+ (Forex Factory)';
     a.style.fontSize = '12px';
     a.style.color = '#58a6ff';
     a.style.textDecoration = 'underline';
@@ -3110,24 +3087,13 @@ function afficherModaleOPEP(dateISO) {
 }
 
 function enregistrerOPEP(dateISO) {
+  var d = document.getElementById('opep-r1').value;
   var payload = {};
-  var manquantes = 0;
 
-  for (var j = 1; j <= 2; j++) {
-    var d = document.getElementById('opep-r' + j).value;
-    if (d) {
-      payload['r' + j] = d;
-    } else {
-      manquantes++;
-    }
-  }
-
-  if (Object.keys(payload).length === 0) {
-    alert('Aucune date saisie.');
-    return;
-  }
-
-  if (manquantes > 0) {
+  if (d) {
+    payload.r1 = d;
+  } else {
+    // Aucune date saisie → on programme un rappel dans 1 mois
     var relance = new Date(dateISO + 'T00:00:00');
     relance.setMonth(relance.getMonth() + 1);
     payload.__relanceAu = relance.toISOString().substring(0,10);
@@ -3136,13 +3102,13 @@ function enregistrerOPEP(dateISO) {
   fetch(urlAPI('?action=maj_opep&payload=' + encodeURIComponent(JSON.stringify(payload))))
     .then(function(r){ return r.json(); })
     .then(function(res){
-      if (manquantes === 0) {
+      if (d) {
         localStorage.setItem('opep_done_' + dateISO, '1');
       }
       var m = document.getElementById('opep-modal');
       if (m) m.remove();
       chargerDonnees();
-      console.log('OPEP+ : ' + (res.nbAjoutes || 0) + ' ligne(s) ajoutée(s). Manquantes : ' + manquantes);
+      console.log('OPEP+ : ' + (res.nbAjoutes || 0) + ' ligne(s) ajoutée(s). Manquantes : ' + (d ? 0 : 1));
     })
     .catch(function(err){
       alert('Erreur : ' + err.message);
