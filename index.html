@@ -2529,12 +2529,12 @@ function selectCalDay(dateISO) {
   for (var i = 0; i < ev.length; i++) {
     var e = ev[i];
 
-    var libelle = e.nom || '';
-    if (e.type && e.type.toLowerCase() === 'salon' && e.description) {
-      // Pour les salons, le nom est vide, on affiche la description
-      libelle = e.description;
-    }
-    html += '• ' + (e.type || '') + ' — ' + libelle + '<br>';
+    // Construction du libellé : type + nom entreprise (si présent) + description (si présente)
+    var parts = [];
+    if (e.type)                        parts.push(e.type);
+    if (e.nom && e.nom.trim())         parts.push(e.nom.trim());
+    if (e.description && e.description.trim()) parts.push(e.description.trim());
+    html += '• ' + parts.join(' — ') + '<br>';
 
     if (e.type && e.type.toLowerCase().indexOf('pmi') >= 0) {
       var d = new Date(e.date + 'T00:00:00');
