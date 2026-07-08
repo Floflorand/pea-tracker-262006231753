@@ -2555,6 +2555,15 @@ function selectCalDay(dateISO) {
         html += '</div>';
       }
     }
+    if (e.type && e.type.toLowerCase().indexOf('maj dates fomc') >= 0) {
+      var dF = new Date(e.date + 'T00:00:00');
+      dF.setHours(0, 0, 0, 0);
+      if (dF <= today) {
+        html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">';
+        html += '<button onclick="ouvrirModaleFOMC(\'' + e.date + '\')">🏦 Saisir les dates FOMC</button>';
+        html += '</div>';
+      }
+    }
     
     html += '<br>';
   }
@@ -2879,7 +2888,133 @@ function enregistrerSalons(dateISO) {
       alert('Erreur : ' + err.message);
     });
 }
-  
+
+function ouvrirModaleFOMC(dateISO) {
+  afficherModaleFOMC(dateISO);
+  fetch(urlAPI('?action=calendrier'))
+    .then(function(r){ return r.json(); })
+    .then(function(events){
+      if (!events) return;
+      var avant = calEvents.length;
+      calEvents = events;
+      var modal = document.getElementById('fomc-modal');
+      if (modal && events.length !== avant) {
+        modal.remove();
+        afficherModaleFOMC(dateISO);
+      }
+    })
+    .catch(function(){});
+}
+
+function afficherModaleFOMC(dateISO) {
+  var m = document.getElementById('fomc-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'fomc-modal';
+    m.style.cssText =
+      'position:fixed;inset:0;background:rgba(0,0,0,.6);' +
+      'z-index:9999;display:flex;justify-content:center;align-items:center;' +
+      'padding:16px;overflow-y:auto;';
+    document.body.appendChild(m);
+  }
+
+  var anneeCible = new Date(dateISO + 'T00:00:00').getFullYear() + 1;
+
+  // Compter les réunions FOMC déjà en base pour l'année cible
+  var dejaSaisies = 0;
+  for (var i = 0; i < calEvents.length; i++) {
+    var e = calEvents[i];
+    if (!e.date || !e.type) continue;
+    if (e.type.toLowerCase() !== 'réunion fomc') continue;
+    if (parseInt(e.date.substring(0, 4), 10) === anneeCible) dejaSaisies++;
+  }
+
+  if (dejaSaisies >= 8) {
+    alert('Les 8 réunions FOMC de ' + anneeCible + ' sont déjà saisies');
+    localStorage.setItem('fomc_done_' + dateISO, '1');
+    m.remove();
+    chargerDonnees();
+    return;
+  }
+
+  var parts = [];
+  parts.push('<div style="background:var(--bg);padding:20px;border-radius:8px;max-width:520px;width:100%;font-size:14px;max-height:90vh;overflow-y:auto;">');
+  parts.push('<h3 style="margin:0 0 6px 0;">Dates FOMC ' + anneeCible + '</h3>');
+  parts.push('<div style="font-size:11px;color:var(--dim);margin-bottom:8px;">Saisir les 8 réunions FOMC. Laisse vide ce qui n\'est pas encore annoncé.</div>');
+  parts.push('<div id="lien-fomc" style="margin-bottom:14px;"></div>');
+  parts.push('<div style="font-size:11px;color:var(--dim);margin-bottom:6px;">' + dejaSaisies + '/8 déjà saisies pour ' + anneeCible + '</div>');
+
+  for (var j = 1; j <= 8; j++) {
+    parts.push('<div style="border:1px solid var(--border-dim);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:var(--bg2);display:flex;align-items:center;gap:10px;">');
+    parts.push('<b style="min-width:90px;">Réunion ' + j + '</b>');
+    parts.push('<input id="fomc-r' + j + '" type="date" style="font-size:12px;">');
+    parts.push('</div>');
+  }
+
+  parts.push('<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">');
+  parts.push('<button onclick="document.getElementById(\'fomc-modal\').remove()">Annuler</button>');
+  parts.push('<button onclick="enregistrerFOMC(\'' + dateISO + '\')" style="background:var(--blue);color:#fff;padding:6px 14px;border:none;border-radius:4px;">Valider</button>');
+  parts.push('</div>');
+  parts.push('</div>');
+
+  m.innerHTML = parts.join('');
+
+  // Injection du lien officiel en JS pur (pour éviter que le HTML soit mangé)
+  var placeholder = document.getElementById('lien-fomc');
+  if (placeholder) {
+    var a = document.createElement('a');
+    a.href = 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = 'Site officiel Fed FOMC';
+    a.style.fontSize = '12px';
+    a.style.color = '#58a6ff';
+    a.style.textDecoration = 'underline';
+    placeholder.appendChild(a);
+  }
+}
+
+function enregistrerFOMC(dateISO) {
+  var payload = {};
+  var manquantes = 0;
+
+  for (var j = 1; j <= 8; j++) {
+    var d = document.getElementById('fomc-r' + j).value;
+    if (d) {
+      payload['r' + j] = d;
+    } else {
+      manquantes++;
+    }
+  }
+
+  if (Object.keys(payload).length === 0) {
+    alert('Aucune date saisie.');
+    return;
+  }
+
+  // Si au moins une réunion est manquante, créer un rappel dans 1 mois
+  if (manquantes > 0) {
+    var relance = new Date(dateISO + 'T00:00:00');
+    relance.setMonth(relance.getMonth() + 1);
+    payload.__relanceAu = relance.toISOString().substring(0,10);
+  }
+
+  fetch(urlAPI('?action=maj_fomc&payload=' + encodeURIComponent(JSON.stringify(payload))))
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (manquantes === 0) {
+        localStorage.setItem('fomc_done_' + dateISO, '1');
+      }
+      var m = document.getElementById('fomc-modal');
+      if (m) m.remove();
+      chargerDonnees();
+      console.log('FOMC : ' + (res.nbAjoutes || 0) + ' ligne(s) ajoutée(s). Manquantes : ' + manquantes);
+    })
+    .catch(function(err){
+      alert('Erreur : ' + err.message);
+    });
+}
+
 </script>
 </body>
 </html>
