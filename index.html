@@ -2564,6 +2564,15 @@ function selectCalDay(dateISO) {
         html += '</div>';
       }
     }
+    if (e.type && e.type.toLowerCase().indexOf('maj dates opep') >= 0) {
+      var dO = new Date(e.date + 'T00:00:00');
+      dO.setHours(0, 0, 0, 0);
+      if (dO <= today) {
+        html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">';
+        html += '<button onclick="ouvrirModaleOPEP(\'' + e.date + '\')">🛢️ Saisir les dates OPEP+</button>';
+        html += '</div>';
+      }
+    }
     
     html += '<br>';
   }
@@ -3015,6 +3024,131 @@ function enregistrerFOMC(dateISO) {
     });
 }
 
+  function ouvrirModaleOPEP(dateISO) {
+  afficherModaleOPEP(dateISO);
+  fetch(urlAPI('?action=calendrier'))
+    .then(function(r){ return r.json(); })
+    .then(function(events){
+      if (!events) return;
+      var avant = calEvents.length;
+      calEvents = events;
+      var modal = document.getElementById('opep-modal');
+      if (modal && events.length !== avant) {
+        modal.remove();
+        afficherModaleOPEP(dateISO);
+      }
+    })
+    .catch(function(){});
+}
+
+function afficherModaleOPEP(dateISO) {
+  var m = document.getElementById('opep-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'opep-modal';
+    m.style.cssText =
+      'position:fixed;inset:0;background:rgba(0,0,0,.6);' +
+      'z-index:9999;display:flex;justify-content:center;align-items:center;' +
+      'padding:16px;overflow-y:auto;';
+    document.body.appendChild(m);
+  }
+
+  // Pour OPEP+ on saisit les 2 prochaines ministérielles glissantes
+  // On regarde combien de reunions OPEP+ sont deja saisies avec une date future ou = aujourd'hui
+  var aujourdhui = new Date().toISOString().substring(0, 10);
+  var futures = 0;
+  for (var i = 0; i < calEvents.length; i++) {
+    var e = calEvents[i];
+    if (!e.date || !e.type) continue;
+    if (e.type.toLowerCase() !== 'réunion opep+') continue;
+    if (e.date >= aujourdhui) futures++;
+  }
+
+  if (futures >= 2) {
+    alert('Les 2 prochaines réunions OPEP+ sont déjà saisies');
+    localStorage.setItem('opep_done_' + dateISO, '1');
+    m.remove();
+    chargerDonnees();
+    return;
+  }
+
+  var parts = [];
+  parts.push('<div style="background:var(--bg);padding:20px;border-radius:8px;max-width:520px;width:100%;font-size:14px;max-height:90vh;overflow-y:auto;">');
+  parts.push('<h3 style="margin:0 0 6px 0;">Dates OPEP+ (12 prochains mois)</h3>');
+  parts.push('<div style="font-size:11px;color:var(--dim);margin-bottom:8px;">Saisir les 2 prochaines réunions ministérielles OPEP+. Laisse vide ce qui n\'est pas encore annoncé.</div>');
+  parts.push('<div id="lien-opep" style="margin-bottom:14px;"></div>');
+  parts.push('<div style="font-size:11px;color:var(--dim);margin-bottom:6px;">' + futures + '/2 déjà saisies à venir</div>');
+
+  for (var j = 1; j <= 2; j++) {
+    parts.push('<div style="border:1px solid var(--border-dim);border-radius:6px;padding:8px 10px;margin-bottom:6px;background:var(--bg2);display:flex;align-items:center;gap:10px;">');
+    parts.push('<b style="min-width:110px;">Réunion ' + j + '</b>');
+    parts.push('<input id="opep-r' + j + '" type="date" style="font-size:12px;">');
+    parts.push('</div>');
+  }
+
+  parts.push('<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">');
+  parts.push('<button onclick="document.getElementById(\'opep-modal\').remove()">Annuler</button>');
+  parts.push('<button onclick="enregistrerOPEP(\'' + dateISO + '\')" style="background:var(--blue);color:#fff;padding:6px 14px;border:none;border-radius:4px;">Valider</button>');
+  parts.push('</div>');
+  parts.push('</div>');
+
+  m.innerHTML = parts.join('');
+
+  // Injection du lien officiel en JS pur
+  var placeholder = document.getElementById('lien-opep');
+  if (placeholder) {
+    var a = document.createElement('a');
+    a.href = 'https://www.opec.org/press-room/press-releases.html';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = 'Site officiel OPEP';
+    a.style.fontSize = '12px';
+    a.style.color = '#58a6ff';
+    a.style.textDecoration = 'underline';
+    placeholder.appendChild(a);
+  }
+}
+
+function enregistrerOPEP(dateISO) {
+  var payload = {};
+  var manquantes = 0;
+
+  for (var j = 1; j <= 2; j++) {
+    var d = document.getElementById('opep-r' + j).value;
+    if (d) {
+      payload['r' + j] = d;
+    } else {
+      manquantes++;
+    }
+  }
+
+  if (Object.keys(payload).length === 0) {
+    alert('Aucune date saisie.');
+    return;
+  }
+
+  if (manquantes > 0) {
+    var relance = new Date(dateISO + 'T00:00:00');
+    relance.setMonth(relance.getMonth() + 1);
+    payload.__relanceAu = relance.toISOString().substring(0,10);
+  }
+
+  fetch(urlAPI('?action=maj_opep&payload=' + encodeURIComponent(JSON.stringify(payload))))
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (manquantes === 0) {
+        localStorage.setItem('opep_done_' + dateISO, '1');
+      }
+      var m = document.getElementById('opep-modal');
+      if (m) m.remove();
+      chargerDonnees();
+      console.log('OPEP+ : ' + (res.nbAjoutes || 0) + ' ligne(s) ajoutée(s). Manquantes : ' + manquantes);
+    })
+    .catch(function(err){
+      alert('Erreur : ' + err.message);
+    });
+}
+  
 </script>
 </body>
 </html>
