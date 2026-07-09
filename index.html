@@ -2634,15 +2634,18 @@ function majBadgeCalendrier(events) {
   if (!btn) return;
 
   var badge = btn.querySelector('.nav-badge-cal');
-
-  // créer si absent
   if (!badge) {
     badge = document.createElement('span');
     badge.className = 'nav-badge nav-badge-cal';
     btn.appendChild(badge);
   }
 
-  var nb = nbPmiEnAttente(events);
+  var nbPMI    = nbPmiEnAttente(events);
+  var nbSalons = nbMajEnAttente(events, 'maj dates salons', 'salons_done_');
+  var nbFOMC   = nbMajEnAttente(events, 'maj dates fomc',   'fomc_done_');
+  var nbOPEP   = nbMajEnAttente(events, 'maj dates opep',   'opep_done_');
+
+  var nb = nbPMI + nbSalons + nbFOMC + nbOPEP;
 
   if (nb > 0) {
     badge.textContent = String(nb);
@@ -2650,6 +2653,34 @@ function majBadgeCalendrier(events) {
   } else {
     badge.style.display = 'none';
   }
+}
+
+/**
+ * Compte le nombre d'événements "MAJ dates X" en attente de saisie.
+ * Un événement est en attente si :
+ *   - sa date est <= aujourd'hui
+ *   - il n'a pas été marqué comme traité en localStorage
+ */
+function nbMajEnAttente(events, typeContains, prefixeDone) {
+  if (!events || !events.length) return 0;
+
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  var nb = 0;
+  for (var i = 0; i < events.length; i++) {
+    var e = events[i];
+    if (!e.type || e.type.toLowerCase().indexOf(typeContains) < 0) continue;
+
+    var d = new Date(e.date + 'T00:00:00');
+    d.setHours(0, 0, 0, 0);
+
+    if (d <= today && !localStorage.getItem(prefixeDone + e.date)) {
+      nb++;
+    }
+  }
+
+  return nb;
 }
 
 function ouvrirModalePMI(dateISO) {
