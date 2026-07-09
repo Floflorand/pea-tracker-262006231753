@@ -2612,8 +2612,6 @@ function nbPmiEnAttente(events) {
   var today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  var nb = 0;
-
   for (var i = 0; i < events.length; i++) {
     var e = events[i];
     if (!e.type || e.type.toLowerCase().indexOf('pmi') < 0) continue;
@@ -2622,11 +2620,11 @@ function nbPmiEnAttente(events) {
     d.setHours(0, 0, 0, 0);
 
     if (d <= today && !localStorage.getItem('pmi_done_' + e.date)) {
-      nb++;
+      return 1; // au moins un PMI en attente = pastille +1
     }
   }
 
-  return nb;
+  return 0;
 }
 
 function majBadgeCalendrier(events) {
@@ -2770,6 +2768,18 @@ function enregistrerPMI(dateISO) {
   fetch(urlAPI('?action=maj_pmi&payload=' + encodeURIComponent(JSON.stringify(payload))))
     .then(function(r){ return r.json(); })
     .then(function(res){
+      // On marque comme traites tous les evenements PMI passes ou du jour
+      var today = new Date().toISOString().substring(0, 10);
+      if (typeof calEvents !== 'undefined' && calEvents) {
+        calEvents.forEach(function(e) {
+          if (!e.type || !e.date) return;
+          if (e.type.toLowerCase().indexOf('pmi') < 0) return;
+          if (e.date <= today) {
+            localStorage.setItem('pmi_done_' + e.date, '1');
+          }
+        });
+      }
+      // Filet de securite : la dateISO transmise
       localStorage.setItem('pmi_done_' + dateISO, '1');
       var m = document.getElementById('pmi-modal');
       if (m) m.remove();
