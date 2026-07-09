@@ -2685,65 +2685,96 @@ function nbMajEnAttente(events, typeContains, prefixeDone) {
 
 function ouvrirModalePMI(dateISO) {
   var m = document.getElementById('pmi-modal');
-
   if (!m) {
     m = document.createElement('div');
     m.id = 'pmi-modal';
     m.style.cssText =
       'position:fixed;inset:0;background:rgba(0,0,0,.6);' +
-      'z-index:9999;display:flex;justify-content:center;align-items:center;';
+      'z-index:9999;display:flex;justify-content:center;align-items:center;' +
+      'padding:16px;overflow-y:auto;';
     document.body.appendChild(m);
   }
 
-  m.innerHTML = `
-    <div style="background:var(--bg);padding:20px;border-radius:8px;min-width:340px;font-size:14px;">
-      <h3 style="margin:0 0 10px 0;">Mise à jour PMI</h3>
+  var pmis = [
+    { cle: 'france', nom: 'PMI France',    lien: 'https://tradingeconomics.com/france/manufacturing-pmi' },
+    { cle: 'euro',   nom: 'PMI Zone Euro', lien: 'https://tradingeconomics.com/euro-area/manufacturing-pmi' },
+    { cle: 'chine',  nom: 'PMI Chine',     lien: 'https://tradingeconomics.com/china/manufacturing-pmi' },
+    { cle: 'nbs',    nom: 'NBS Retail',    lien: 'https://tradingeconomics.com/china/retail-sales-annual' }
+  ];
 
-      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
-        <label>PMI France <input id="p1" type="number" step="0.1" style="width:80px;"></label>
-        <a href="https://tradingeconomics.com/france/manufacturing-pmi" target="_blank">🔗 PMI France</a>
+  var parts = [];
+  parts.push('<div style="background:var(--bg);padding:20px;border-radius:8px;max-width:520px;width:100%;font-size:14px;max-height:90vh;overflow-y:auto;">');
+  parts.push('<h3 style="margin:0 0 6px 0;">Mise à jour PMI</h3>');
+  parts.push('<div style="font-size:11px;color:var(--dim);margin-bottom:14px;">Saisir les 4 valeurs. La validation nécessite que toutes soient renseignées.</div>');
 
-        <label>PMI Zone Euro <input id="p2" type="number" step="0.1" style="width:80px;"></label>
-        <a href="https://tradingeconomics.com/euro-area/manufacturing-pmi" target="_blank">🔗 PMI Euro</a>
+  for (var i = 0; i < pmis.length; i++) {
+    var p = pmis[i];
+    parts.push('<div style="border:1px solid var(--border-dim);border-radius:6px;padding:10px;margin-bottom:8px;background:var(--bg2);">');
+    parts.push('<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;">');
+    parts.push('<b>' + p.nom + '</b>');
+    parts.push('<span id="lien-pmi-' + p.cle + '"></span>');
+    parts.push('</div>');
+    parts.push('<input id="pmi-' + p.cle + '" type="number" step="0.1" style="font-size:12px;width:100px;">');
+    parts.push('</div>');
+  }
 
-        <label>PMI Chine <input id="p3" type="number" step="0.1" style="width:80px;"></label>
-        <a href="https://tradingeconomics.com/china/manufacturing-pmi" target="_blank">🔗 PMI Chine</a>
+  parts.push('<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">');
+  parts.push('<button onclick="document.getElementById(\'pmi-modal\').remove()">Annuler</button>');
+  parts.push('<button onclick="enregistrerPMI(\'' + dateISO + '\')" style="background:var(--blue);color:#fff;padding:6px 14px;border:none;border-radius:4px;">Valider</button>');
+  parts.push('</div>');
+  parts.push('</div>');
 
-        <label>NBS Retail <input id="p4" type="number" step="0.1" style="width:80px;"></label>
-        <a href="https://tradingeconomics.com/china/retail-sales-annual" target="_blank">🔗 NBS Retail</a>
-      </div>
+  m.innerHTML = parts.join('');
 
-      <div style="margin-top:14px;text-align:right;">
-        <button onclick="enregistrerPMI('${dateISO}')">Enregistrer</button>
-        <button onclick="document.getElementById('pmi-modal').remove()">Annuler</button>
-      </div>
-    </div>
-  `;
+  // Injection des liens en JS pur
+  pmis.forEach(function(p) {
+    var ph = document.getElementById('lien-pmi-' + p.cle);
+    if (ph) {
+      var a = document.createElement('a');
+      a.href = p.lien;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = 'Site officiel';
+      a.style.fontSize = '11px';
+      a.style.color = '#58a6ff';
+      a.style.textDecoration = 'underline';
+      ph.appendChild(a);
+    }
+  });
 }
 
 function enregistrerPMI(dateISO) {
-  var p = {
-    france: parseFloat(document.getElementById('p1').value),
-    euro:   parseFloat(document.getElementById('p2').value),
-    chine:  parseFloat(document.getElementById('p3').value),
-    nbs:    parseFloat(document.getElementById('p4').value),
-  };
+  var pmis = ['france', 'euro', 'chine', 'nbs'];
+  var payload = {};
+  var manquantes = [];
 
-  fetch(urlAPI('?action=maj_pmi&payload=' + encodeURIComponent(JSON.stringify(p))))
+  pmis.forEach(function(cle) {
+    var val = document.getElementById('pmi-' + cle).value;
+    if (val === '') {
+      manquantes.push(cle);
+      return;
+    }
+    var nombre = parseFloat(val);
+    if (isNaN(nombre)) {
+      manquantes.push(cle);
+      return;
+    }
+    payload[cle] = nombre;
+  });
+
+  if (manquantes.length > 0) {
+    alert('Toutes les valeurs doivent être renseignées (manquant : ' + manquantes.join(', ') + ').');
+    return;
+  }
+
+  fetch(urlAPI('?action=maj_pmi&payload=' + encodeURIComponent(JSON.stringify(payload))))
     .then(function(r){ return r.json(); })
     .then(function(res){
-      // ✅ Marquer comme traité
       localStorage.setItem('pmi_done_' + dateISO, '1');
-
-      // ✅ Fermer le modal
       var m = document.getElementById('pmi-modal');
       if (m) m.remove();
-
-      // ✅ Rafraîchir les données SANS recharger la page
       chargerDonnees();
-
-      // ✅ Petit feedback discret (pas d'alert bloquant)
-      console.log('✅ ' + (res.message || 'PMI mis à jour'));
+      console.log('PMI : ' + (res.message || 'mis à jour'));
     })
     .catch(function(err){
       alert('Erreur : ' + err.message);
