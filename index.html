@@ -905,7 +905,12 @@ function toggleMacroSection(el) {
 }
   
 // ── INIT ──────────────────────────────
+var dernierRefresh = 0;
+var REFRESH_THROTTLE_MS = 30 * 1000; // 30s min entre 2 refresh au changement d'onglet
+
 document.addEventListener('DOMContentLoaded', function() {
+  chargerDonnees();
+  planifierRefreshQuotidien();
   chargerDonnees();
   refreshTimer = setInterval(chargerDonnees, 30 * 1000);
   // Vider le cache graphiques à 18h40 heure française (UTC+2)
@@ -945,6 +950,12 @@ function switchTab(id, btn) {
   btn.classList.add('active');
   var wlHeader = document.getElementById('wl-sticky-header');
   if (wlHeader) wlHeader.style.display = id === 'wl' ? '' : 'none';
+  // Refresh silencieux au changement d'onglet (avec throttle 30s)
+  var now = Date.now();
+  if (now - dernierRefresh > REFRESH_THROTTLE_MS) {
+    dernierRefresh = now;
+    chargerDonnees();
+  }
 }
 
 // ── OUVERTURE / FERMETURE CARTES ──────
@@ -1032,11 +1043,38 @@ function chargerDonnees() {
     .catch(function(err) { console.warn('API indisponible', err); });
 }
 
+/**
+ * Planifie un refresh automatique tous les jours à 18h30 heure de Paris.
+ * S'auto-replanifie après chaque exécution.
+ */
+function planifierRefreshQuotidien() {
+  var now = new Date();
+  var cible = new Date();
+  cible.setHours(18, 30, 0, 0);
+
+  // Si 18h30 est déjà passé aujourd'hui, on programme pour demain
+  if (now >= cible) {
+    cible.setDate(cible.getDate() + 1);
+  }
+
+  var delai = cible.getTime() - now.getTime();
+  console.log('Prochain refresh auto dans ' + Math.round(delai / 1000 / 60) + ' min');
+
+  setTimeout(function() {
+    console.log('🔄 Refresh automatique 18h30');
+    chartCache = {};
+    chargerDonnees();
+    // Reprogrammer pour le lendemain
+    planifierRefreshQuotidien();
+  }, delai);
+}
+
 function rafraichirUI(data) {
   // Sauvegarder la carte ouverte
   var scrollPos = window.scrollY;
-  var openCard = document.querySelector('.vc.open');
-  var openId = openCard ? openCard.id : null;
+  var openCards = document.querySelectorAll('.vc.open');
+  var openIds = [];
+  openCards.forEach(function(c) { openIds.push(c.id); });
 
   // Détecter quelles sections sont ouvertes avant refresh
 var ouvertures = { macro: false, cm: false, cs: false, vv: false, ss: false };
@@ -1066,40 +1104,40 @@ if (openCard) {
   majBadgeCalendrier(data.calendrier);
   }
 
-  // Restaurer la carte ouverte
-  if (openId) {
+  // Restaurer les cartes ouvertes
+  openIds.forEach(function(openId) {
     var card = document.getElementById(openId);
-    if (card) {
-      var tickElR = card.querySelector('.vtick');
-      if (tickElR) {
-        var tkR = tickElR.textContent.split('·')[0].trim();
-        var idCarteR = card.id.replace('c-', '');
-  
-        var pocheClassR = card.className;
-        if (pocheClassR.indexOf('pocket-s') >= 0) {
-          chargerDetailStableEtInjecter(tkR, idCarteR, ouvertures);
-        } else if (pocheClassR.indexOf('pocket-c') >= 0) {
-          chargerDetailCycliqueEtInjecter(tkR, idCarteR, ouvertures);
-        } else if (pocheClassR.indexOf('pocket-g') >= 0) {
-          chargerDetailGrowthEtInjecter(tkR, idCarteR, ouverturesGrowth);
-        }
-      }
+    if (!card) return;
 
-      card.classList.add('open');
-      var d = card.querySelector('.vdetail');
-      if (d) d.classList.add('open');
-      // Re-dessiner le graphique depuis le cache
-      var chartEl = card.querySelector('.chart-embed');
-      if (chartEl) {
-        var cid = chartEl.id.replace('ce-', '');
-        var meta = chartMeta[cid];
-        if (meta) {
-          var ck = meta.ticker + '_' + meta.range;
-          if (chartCache[ck]) dessinerEmbed(cid, chartCache[ck], meta.type);
-        }
+    var tickElR = card.querySelector('.vtick');
+    if (tickElR) {
+      var tkR = tickElR.textContent.split('·')[0].trim();
+      var idCarteR = card.id.replace('c-', '');
+
+      var pocheClassR = card.className;
+      if (pocheClassR.indexOf('pocket-s') >= 0) {
+        chargerDetailStableEtInjecter(tkR, idCarteR, ouvertures);
+      } else if (pocheClassR.indexOf('pocket-c') >= 0) {
+        chargerDetailCycliqueEtInjecter(tkR, idCarteR, ouvertures);
+      } else if (pocheClassR.indexOf('pocket-g') >= 0) {
+        chargerDetailGrowthEtInjecter(tkR, idCarteR, ouverturesGrowth);
       }
     }
-  }
+
+    card.classList.add('open');
+    var d = card.querySelector('.vdetail');
+    if (d) d.classList.add('open');
+    // Re-dessiner le graphique depuis le cache
+    var chartEl = card.querySelector('.chart-embed');
+    if (chartEl) {
+      var cid = chartEl.id.replace('ce-', '');
+      var meta = chartMeta[cid];
+      if (meta) {
+        var ck = meta.ticker + '_' + meta.range;
+        if (chartCache[ck]) dessinerEmbed(cid, chartCache[ck], meta.type);
+      }
+    }
+  });
   
   // ── Restaurer l'état UI ──
   // Onglet actif (sauf au tout premier chargement)
