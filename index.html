@@ -1182,24 +1182,49 @@ function couleurVar(cls) {
 //  BARRE DU HAUT + TENSION BAR
 // ══════════════════════════════════════
 
+function couleurStatut(statut) {
+  if (!statut) return '';
+  if (statut.indexOf('🟢') >= 0) return 'up';    // vert
+  if (statut.indexOf('🟡') >= 0) return 'neut';  // jaune
+  if (statut.indexOf('🔴') >= 0) return 'down';  // rouge
+  return '';
+}
+
+function libelleSignalCourt(signalGlobal) {
+  // Nettoie "🟢 FAVORABLE — Fenêtre d'entrée" en "FAVORABLE"
+  if (!signalGlobal) return '';
+  return signalGlobal
+    .replace(/^[🟢🟡🔴]\s*/, '')      // retire emoji initial
+    .split('—')[0]                      // garde la partie avant le tiret
+    .split('-')[0]                      // sécurité si tiret simple
+    .trim();
+}
+
 function majBarre(ctx) {
   var band = document.getElementById('top-band');
   if (!band) return;
+
   var tb = document.getElementById('tension-bar');
   if (tb && ctx.signaux) tb.className = tensionClasse(ctx.signaux.global);
+
   var items = [];
+
+  // CAC 40 : valeur blanche, variation colorée
   if (ctx.cac40) {
     var vc = classeVar(ctx.cac40.variation);
     items.push('<div class="bi"><span class="bi-lbl">CAC 40</span><span class="bi-val">'
       + fmt(ctx.cac40.valeur, 0) + ' <span class="' + vc + '">'
       + (vc === 'up' ? '▲' : '▼') + fmtPct(ctx.cac40.variation) + '</span></span></div>');
   }
+
+  // VIX : valeur colorée selon statut, pastille et texte "CALME" supprimés
   if (ctx.vix) {
-    var vn = parseFloat(ctx.vix.valeur) || 0;
-    var vc2 = vn > 25 ? 'down' : vn > 18 ? 'neut' : 'up';
-    items.push('<div class="bi"><span class="bi-lbl">VIX</span><span class="bi-val">'
-      + fmt(ctx.vix.valeur, 1) + ' <span class="' + vc2 + '">' + (ctx.vix.statut || '') + '</span></span></div>');
+    var vixCls = couleurStatut(ctx.vix.statut);
+    items.push('<div class="bi"><span class="bi-lbl">VIX</span><span class="bi-val ' + vixCls + '">'
+      + fmt(ctx.vix.valeur, 1) + '</span></div>');
   }
+
+  // Anticipation L·E·C (inchangé)
   if (ctx.signaux) {
     var lc = signalClasse(ctx.signaux.leading);
     var ec = signalClasse(ctx.signaux.early);
@@ -1208,21 +1233,46 @@ function majBarre(ctx) {
       + '<div class="antici-row"><span class="dot ' + lc + '"></span><span class="antici-lbl">L</span>'
       + '<span class="dot ' + ec + '"></span><span class="antici-lbl">E</span>'
       + '<span class="dot ' + cc + '"></span><span class="antici-lbl">C</span></div></div>');
+
+    // Signal marché : pastille + libellé court
     if (ctx.signaux.global) {
       var gc = signalClasse(ctx.signaux.global);
+      var libelleCourt = libelleSignalCourt(ctx.signaux.global);
       items.push('<div class="bi"><span class="bi-lbl">Signal marché</span>'
-        + '<span class="band-sig ' + gc + '">' + signalEmoji(gc) + ' ' + ctx.signaux.global + '</span></div>');
+        + '<span class="band-sig ' + gc + '"><span class="dot ' + gc + '"></span> ' + libelleCourt + '</span></div>');
     }
   }
-  if (ctx.bce) items.push('<div class="bi"><span class="bi-lbl">BCE</span><span class="bi-val">' + fmt(ctx.bce.valeur, 2) + '%</span></div>');
-  if (ctx.oat) items.push('<div class="bi"><span class="bi-lbl">OAT 10 ans</span><span class="bi-val">' + fmt(ctx.oat.valeur, 2) + '%</span></div>');
-  if (ctx.brent) {
-    var bc = classeVar(ctx.brent.variation);
-    items.push('<div class="bi"><span class="bi-lbl">Brent</span><span class="bi-val">'
-      + fmt(ctx.brent.valeur, 1) + '$ <span class="' + bc + '">'
-      + (bc === 'up' ? '▲' : '▼') + fmtPct(ctx.brent.variation) + '</span></span></div>');
+
+  // BCE : valeur colorée selon statut
+  if (ctx.bce) {
+    var bceCls = couleurStatut(ctx.bce.statut);
+    items.push('<div class="bi"><span class="bi-lbl">BCE</span><span class="bi-val ' + bceCls + '">'
+      + fmt(ctx.bce.valeur, 2) + '%</span></div>');
   }
-  if (ctx.eurusd) items.push('<div class="bi"><span class="bi-lbl">EUR/USD</span><span class="bi-val">' + fmt(ctx.eurusd.valeur, 3) + '</span></div>');
+
+  // OAT : valeur colorée selon statut
+  if (ctx.oat) {
+    var oatCls = couleurStatut(ctx.oat.statut);
+    items.push('<div class="bi"><span class="bi-lbl">OAT 10 ans</span><span class="bi-val ' + oatCls + '">'
+      + fmt(ctx.oat.valeur, 2) + '%</span></div>');
+  }
+
+  // Brent : valeur colorée selon statut, variation colorée selon signe
+  if (ctx.brent) {
+    var brentCls = couleurStatut(ctx.brent.statut);
+    var brentVarCls = classeVar(ctx.brent.variation);
+    items.push('<div class="bi"><span class="bi-lbl">Brent</span><span class="bi-val"><span class="' + brentCls + '">'
+      + fmt(ctx.brent.valeur, 1) + '$</span> <span class="' + brentVarCls + '">'
+      + (brentVarCls === 'up' ? '▲' : '▼') + fmtPct(ctx.brent.variation) + '</span></span></div>');
+  }
+
+  // EUR/USD : valeur colorée selon statut
+  if (ctx.eurusd) {
+    var eurCls = couleurStatut(ctx.eurusd.statut);
+    items.push('<div class="bi"><span class="bi-lbl">EUR/USD</span><span class="bi-val ' + eurCls + '">'
+      + fmt(ctx.eurusd.valeur, 3) + '</span></div>');
+  }
+
   band.innerHTML = items.join('');
 }
 
