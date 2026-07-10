@@ -2464,18 +2464,30 @@ function renderCalSimple() {
     html += '<div data-day="' + iso + '" style="' + style + '" onclick="selectCalDay(\'' + iso + '\')">';
     html += '<div>' + d + '</div>';
 
-    // points événements
+    // points événements : 1 point par catégorie de couleur
     if (ev.length) {
-      html += '<div style="margin-top:4px;display:flex;gap:4px">';
+      var couleursDejaVues = {};
+      var pointsHTML = '';
       for (var e = 0; e < ev.length; e++) {
-        html += '<div style="width:6px;height:6px;border-radius:50%;background:' + couleurEvent(ev[e].type) + '"></div>';
+        var c = couleurEvent(ev[e]);
+        if (couleursDejaVues[c]) continue;
+        couleursDejaVues[c] = true;
+        pointsHTML += '<div style="width:6px;height:6px;border-radius:50%;background:' + c + '"></div>';
       }
-      html += '</div>';
+      html += '<div style="margin-top:4px;display:flex;gap:4px">' + pointsHTML + '</div>';
     }
 
     html += '</div>';
   }
 
+  html += '</div>';
+
+  // Légende
+  html += '<div style="display:flex;gap:12px;justify-content:center;padding:10px 15px;font-size:10px;color:var(--dim);font-family:var(--mono);flex-wrap:wrap;">';
+  html += '<div style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#58a6ff;"></span>Ticker</div>';
+  html += '<div style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#3fb950;"></span>Macro</div>';
+  html += '<div style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#a371f7;"></span>Sectoriel</div>';
+  html += '<div style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#f0883e;"></span>Système</div>';
   html += '</div>';
 
   // détail
@@ -2494,15 +2506,23 @@ function changerMois(delta) {
   renderCalSimple();
 }
 
-function couleurEvent(type) {
-  var t = (type || '').toLowerCase();
+function couleurEvent(e) {
+  var poche = (e.poche || '').toLowerCase();
 
-  if (t.indexOf('résultat') >= 0 || t.indexOf('resultat') >= 0) return 'var(--blue)';
-  if (t.indexOf('dividende') >= 0) return 'var(--purple)';
-  if (t.indexOf('bce') >= 0) return 'var(--yellow)';
-  if (t.indexOf('pmi') >= 0) return 'var(--green)';
-
-  return 'var(--blue)';
+  // Système → orange
+  if (poche.indexOf('système') >= 0 || poche.indexOf('systeme') >= 0) {
+    return '#f0883e'; // orange
+  }
+  // Macro → vert
+  if (poche.indexOf('macro') >= 0) {
+    return '#3fb950'; // vert
+  }
+  // Événement ticker (poche = Stable/Cyclique/Growth)
+  if (poche.indexOf('stable') >= 0 || poche.indexOf('cycl') >= 0 || poche.indexOf('grow') >= 0) {
+    return '#58a6ff'; // bleu
+  }
+  // Sinon → sectoriel (violet)
+  return '#a371f7'; // violet
 }
 
 function selectCalDay(dateISO) {
