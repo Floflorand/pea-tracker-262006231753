@@ -1149,14 +1149,21 @@ function classeVar(v) {
   if (isNaN(n)) return '';
   return n >= 0 ? 'up' : 'down';
 }
-function signalClasse(sig) {
-  if (!sig) return '';
-  if (sig.indexOf('🟢') >= 0) return 'up';
-  if (sig.indexOf('🟡') >= 0) return 'neut';
-  if (sig.indexOf('🔴') >= 0) return 'down';
-  if (sig.indexOf('🎯') >= 0) return 'target';    // opportunité (cible)
-  if (sig.indexOf('⚠️') >= 0) return 'warn';      // piège (attention)
-  return '';
+
+function signalClasse(signal) {
+  if (!signal) return 'y';
+  var s = signal.toString();
+  if (s.indexOf('🔴') >= 0) return 'r';
+  if (s.indexOf('🟢') >= 0) return 'g';
+  if (s.indexOf('🟡') >= 0) return 'y';
+  if (s.indexOf('⚠') >= 0) return 'y';
+  if (s.indexOf('🎯') >= 0) return 'y';
+  var low = s.toLowerCase();
+  if (low.indexOf('risk-off') >= 0 || low.indexOf('danger') >= 0 || low.indexOf('alerte') >= 0) return 'r';
+  if (low.indexOf('favorable') >= 0 || low.indexOf('ras') >= 0 || low.indexOf('ok') >= 0 || low.indexOf('normal') >= 0) return 'g';
+  if (low.indexOf('achat') >= 0 || low.indexOf('porteur') >= 0) return 'g';
+  if (low.indexOf('vente') >= 0 || low.indexOf('pression') >= 0) return 'r';
+  return 'y';
 }
   
 function signalEmoji(c) {
@@ -1235,10 +1242,10 @@ function majBarre(ctx) {
 
     // Signal marché : pastille + libellé court
     if (ctx.signaux.global) {
-      var gc = signalClasse(ctx.signaux.global);
       var libelleCourt = libelleSignalCourt(ctx.signaux.global);
+      var emoji = extraireEmoji(ctx.signaux.global);
       items.push('<div class="bi"><span class="bi-lbl">Signal marché</span>'
-        + '<span class="band-sig"><span class="dot ' + gc + '"></span> ' + libelleCourt + '</span></div>');
+        + '<span class="band-sig">' + emoji + ' ' + libelleCourt + '</span></div>');
     }
   }
 
@@ -1275,6 +1282,14 @@ function majBarre(ctx) {
   band.innerHTML = items.join('');
 }
 
+function extraireEmoji(signalGlobal) {
+  if (!signalGlobal) return '';
+  // Prend juste le premier caractère "visible" (emoji), les emojis colorés font 2 char UTF-16
+  var m = signalGlobal.match(/^(\p{Emoji}\uFE0F?|\p{Emoji})/u);
+  if (m) return m[0];
+  return '';
+}
+  
 // ══════════════════════════════════════
 //  ONGLET PORTEFEUILLE
 // ══════════════════════════════════════
