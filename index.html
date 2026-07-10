@@ -352,7 +352,19 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 <!-- ─── ONGLET CALENDRIER ─── -->
 
 <div id="tab-cal" class="tab-panel">
-  <div style="display:flex;align-items:center;justify-content:center;min-height:40vh;color:var(--dim);font-family:var(--mono);font-size:13px">⏳ Chargement...</div>
+  <div id="cal-filter-bar" style="position:sticky;top:0;z-index:100;background:var(--bg);padding:8px 0 6px;border-bottom:1px solid var(--border-dim);margin-bottom:8px;display:none">
+    <div style="position:relative;">
+      <input id="cal-filter-input" type="text" placeholder="🔍 Filtrer par ticker..." autocomplete="off"
+             style="width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--border-dim);border-radius:var(--r-sm);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 32px 8px 10px;">
+      <button id="cal-filter-clear" type="button" onclick="resetFiltreCalendrier()"
+              style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:2px 6px;display:none;">✕</button>
+    </div>
+    <div id="cal-filter-list" style="display:none;position:absolute;left:0;right:0;background:var(--bg2);border:1px solid var(--border-dim);border-top:none;border-radius:0 0 var(--r-sm) var(--r-sm);max-height:260px;overflow-y:auto;z-index:200;"></div>
+    <div id="cal-filter-active" style="font-size:10px;color:var(--dim);margin-top:4px;font-family:var(--mono);display:none;"></div>
+  </div>
+  <div id="cal-content">
+    <div style="display:flex;align-items:center;justify-content:center;min-height:40vh;color:var(--dim);font-family:var(--mono);font-size:13px">⏳ Chargement...</div>
+  </div>
 </div>
   
 <!-- ─── ONGLET ACTUALITÉS ─── -->
@@ -1013,6 +1025,9 @@ function chargerDonnees() {
       localStorage.setItem('peaCacheDate', new Date().toISOString());
       rafraichirUI(data);
       prechargerGraphiques();
+      if (calTickers.length === 0) {
+        chargerTickersFiltre();
+      }
     })
     .catch(function(err) { console.warn('API indisponible', err); });
 }
@@ -2372,6 +2387,9 @@ function ouvrirDividendeSig(ticker, nom, valeurDeclenchante) {
 var calEvents = [];
 var calDate = new Date();
 var calSelectedDate = null;
+var calTickers = [];         // liste [{ticker, nom, secteur}, ...]
+var calFiltre = null;        // { ticker, nom, secteur } ou null si "Tous"
+var CAL_FILTER_KEY = 'cal_filter_ticker';
 
 function majCalendrierTest(events) {
   calEvents = events || [];
@@ -2379,7 +2397,7 @@ function majCalendrierTest(events) {
 }
 
 function renderCalSimple() {
-  var tab = document.getElementById('tab-cal');
+  var tab = document.getElementById('cal-content');
   if (!tab) return;
 
   var y = calDate.getFullYear();
@@ -2422,13 +2440,16 @@ function renderCalSimple() {
   var today = new Date();
   today.setHours(0,0,0,0);
 
+  var eventsAffiches = filtrerEvenementsCal(calEvents);
+
   for (var d = 1; d <= nbDays; d++) {
     var dateObj = new Date(y, m, d);
     dateObj.setHours(0,0,0,0);
 
     var iso = y + '-' + String(m+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
 
-    var ev = calEvents.filter(function(e){ return e.date === iso });
+    var eventsAffiches = filtrerEvenementsCal(calEvents);
+    var ev = eventsAffiches.filter(function(e){ return e.date === iso });
 
     var style = 'padding:8px;border:1px solid var(--border);border-radius:6px;cursor:pointer;';
 
@@ -2514,7 +2535,8 @@ function selectCalDay(dateISO) {
   var div = document.getElementById('cal-detail');
   if (!div) return;
 
-  var ev = calEvents.filter(function(e){ return e.date === dateISO; });
+  var eventsAffiches = filtrerEvenementsCal(calEvents);
+  var ev = eventsAffiches.filter(function(e){ return e.date === dateISO });
 
   if (!ev.length) {
     div.innerHTML = 'Aucun événement';
@@ -3192,6 +3214,174 @@ function enregistrerOPEP(dateISO) {
     .catch(function(err){
       alert('Erreur : ' + err.message);
     });
+}
+
+// ══════════════════════════════════════
+//  FILTRE CALENDRIER PAR TICKER
+// ══════════════════════════════════════
+
+function chargerTickersFiltre() {
+  fetch(urlAPI('?action=tickers'))
+    .then(function(r){ return r.json(); })
+    .then(function(list){
+      calTickers = list || [];
+      initFiltreCalendrier();
+    })
+    .catch(function(err){ console.log('Erreur chargement tickers filtre:', err); });
+}
+
+function initFiltreCalendrier() {
+  // Afficher la barre
+  var bar = document.getElementById('cal-filter-bar');
+  if (bar) bar.style.display = 'block';
+
+  // Restaurer le filtre depuis localStorage
+  var savedTicker = localStorage.getItem(CAL_FILTER_KEY);
+  if (savedTicker) {
+    var found = calTickers.find(function(t){ return t.ticker === savedTicker; });
+    if (found) {
+      calFiltre = found;
+      afficherFiltreActif();
+    }
+  }
+
+  // Setup input
+  var input = document.getElementById('cal-filter-input');
+  if (input) {
+    input.addEventListener('input', function() {
+      montrerListeTickers(input.value);
+    });
+    input.addEventListener('focus', function() {
+      montrerListeTickers(input.value);
+    });
+    input.addEventListener('blur', function() {
+      // Léger délai pour permettre le clic sur un item
+      setTimeout(function() {
+        var list = document.getElementById('cal-filter-list');
+        if (list) list.style.display = 'none';
+      }, 200);
+    });
+  }
+}
+
+function montrerListeTickers(query) {
+  var list = document.getElementById('cal-filter-list');
+  if (!list) return;
+
+  var q = (query || '').toLowerCase().trim();
+  var filtered = calTickers.filter(function(t) {
+    if (!q) return true;
+    return t.ticker.toLowerCase().indexOf(q) >= 0
+        || (t.nom || '').toLowerCase().indexOf(q) >= 0;
+  });
+
+  // Option "Tous" en premier
+  var html = '<div class="cal-filter-item" data-ticker="__ALL__" ' +
+             'style="padding:8px 10px;cursor:pointer;font-family:var(--mono);font-size:12px;color:var(--text);border-bottom:1px solid var(--border-dim);">' +
+             '📋 Tous les événements' +
+             '</div>';
+
+  if (filtered.length === 0 && q) {
+    html += '<div style="padding:8px 10px;color:var(--dim);font-family:var(--mono);font-size:11px;font-style:italic;">Aucun ticker trouvé</div>';
+  } else {
+    for (var i = 0; i < filtered.length; i++) {
+      var t = filtered[i];
+      html += '<div class="cal-filter-item" data-ticker="' + t.ticker + '" ' +
+              'style="padding:6px 10px;cursor:pointer;font-family:var(--mono);font-size:11px;border-bottom:1px solid var(--border-dim);">' +
+              '<div style="color:var(--text);font-weight:600;">' + t.ticker + '</div>' +
+              '<div style="color:var(--dim);font-size:10px;">' + (t.nom || '') + ' — ' + (t.secteur || '') + '</div>' +
+              '</div>';
+    }
+  }
+
+  list.innerHTML = html;
+  list.style.display = 'block';
+
+  // Bind clics
+  var items = list.querySelectorAll('.cal-filter-item');
+  for (var j = 0; j < items.length; j++) {
+    items[j].addEventListener('mousedown', function(e) {
+      var ticker = e.currentTarget.getAttribute('data-ticker');
+      selectionnerFiltreTicker(ticker);
+    });
+  }
+}
+
+function selectionnerFiltreTicker(ticker) {
+  var list = document.getElementById('cal-filter-list');
+  var input = document.getElementById('cal-filter-input');
+  if (list) list.style.display = 'none';
+
+  if (ticker === '__ALL__') {
+    calFiltre = null;
+    localStorage.removeItem(CAL_FILTER_KEY);
+    if (input) input.value = '';
+  } else {
+    var found = calTickers.find(function(t){ return t.ticker === ticker; });
+    if (!found) return;
+    calFiltre = found;
+    localStorage.setItem(CAL_FILTER_KEY, ticker);
+    if (input) input.value = '';
+  }
+
+  afficherFiltreActif();
+
+  // Re-rendu du calendrier
+  if (typeof afficherCalendrier === 'function') {
+    afficherCalendrier(calEvents);
+  }
+}
+
+function resetFiltreCalendrier() {
+  selectionnerFiltreTicker('__ALL__');
+}
+
+function afficherFiltreActif() {
+  var active = document.getElementById('cal-filter-active');
+  var clear = document.getElementById('cal-filter-clear');
+  if (calFiltre) {
+    if (active) {
+      active.textContent = 'Filtre : ' + calFiltre.ticker + ' (' + (calFiltre.secteur || '?') + ')';
+      active.style.display = 'block';
+    }
+    if (clear) clear.style.display = 'block';
+  } else {
+    if (active) active.style.display = 'none';
+    if (clear) clear.style.display = 'none';
+  }
+}
+
+/**
+ * Applique le filtre actif sur la liste d'événements.
+ * Renvoie la liste filtrée selon la logique :
+ *   - "Tous" : tout, y compris Système
+ *   - Ticker T (secteur S) : événements T + événements Macro + événements dont poche contient S,
+ *     mais PAS Système
+ */
+function filtrerEvenementsCal(events) {
+  if (!events || !events.length) return [];
+  if (!calFiltre) return events; // "Tous" → tout
+
+  var tCible = calFiltre.ticker;
+  var sCible = (calFiltre.secteur || '').toLowerCase().trim();
+
+  return events.filter(function(e) {
+    var poche = (e.poche || '').toLowerCase();
+
+    // Système : jamais affiché en mode filtré
+    if (poche.indexOf('système') >= 0 || poche.indexOf('systeme') >= 0) return false;
+
+    // Événement du ticker sélectionné
+    if (e.ticker === tCible) return true;
+
+    // Événement Macro
+    if (poche.indexOf('macro') >= 0) return true;
+
+    // Événement dont la poche contient le secteur du ticker
+    if (sCible && poche.indexOf(sCible) >= 0) return true;
+
+    return false;
+  });
 }
   
 </script>
