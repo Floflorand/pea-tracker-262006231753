@@ -454,7 +454,6 @@ var lwcReady = false;
   document.head.appendChild(s);
 })();
 var peaData = null;
-var refreshTimer = null;
 var chartInstances = {};
 var chartMeta = {};
 var chartCache = {};
@@ -911,8 +910,6 @@ var REFRESH_THROTTLE_MS = 30 * 1000; // 30s min entre 2 refresh au changement d'
 document.addEventListener('DOMContentLoaded', function() {
   chargerDonnees();
   planifierRefreshQuotidien();
-  chargerDonnees();
-  refreshTimer = setInterval(chargerDonnees, 30 * 1000);
   // Vider le cache graphiques à 18h40 heure française (UTC+2)
   setInterval(function() {
     var now = new Date();
