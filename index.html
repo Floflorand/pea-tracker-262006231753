@@ -1149,21 +1149,16 @@ function classeVar(v) {
   if (isNaN(n)) return '';
   return n >= 0 ? 'up' : 'down';
 }
-function signalClasse(signal) {
-  if (!signal) return 'y';
-  var s = signal.toString();
-  if (s.indexOf('🔴') >= 0) return 'r';
-  if (s.indexOf('🟢') >= 0) return 'g';
-  if (s.indexOf('🟡') >= 0) return 'y';
-  if (s.indexOf('⚠') >= 0) return 'y';
-  if (s.indexOf('🎯') >= 0) return 'y';
-  var low = s.toLowerCase();
-  if (low.indexOf('risk-off') >= 0 || low.indexOf('danger') >= 0 || low.indexOf('alerte') >= 0) return 'r';
-  if (low.indexOf('favorable') >= 0 || low.indexOf('ras') >= 0 || low.indexOf('ok') >= 0 || low.indexOf('normal') >= 0) return 'g';
-  if (low.indexOf('achat') >= 0 || low.indexOf('porteur') >= 0) return 'g';
-  if (low.indexOf('vente') >= 0 || low.indexOf('pression') >= 0) return 'r';
-  return 'y';
+function signalClasse(sig) {
+  if (!sig) return '';
+  if (sig.indexOf('🟢') >= 0) return 'up';
+  if (sig.indexOf('🟡') >= 0) return 'neut';
+  if (sig.indexOf('🔴') >= 0) return 'down';
+  if (sig.indexOf('🎯') >= 0) return 'target';    // opportunité (cible)
+  if (sig.indexOf('⚠️') >= 0) return 'warn';      // piège (attention)
+  return '';
 }
+  
 function signalEmoji(c) {
   return c === 'g' ? '🟢' : c === 'r' ? '🔴' : '🟡';
 }
@@ -1191,15 +1186,19 @@ function couleurStatut(statut) {
 }
 
 function libelleSignalCourt(signalGlobal) {
-  // Nettoie "🟢 FAVORABLE — Fenêtre d'entrée" en "FAVORABLE"
   if (!signalGlobal) return '';
-  return signalGlobal
-    .replace(/^[🟢🟡🔴]\s*/, '')      // retire emoji initial
-    .split('—')[0]                      // garde la partie avant le tiret
-    .split('-')[0]                      // sécurité si tiret simple
-    .trim();
+  var s = signalGlobal;
+  if (s.indexOf('RISK-OFF') >= 0)      return 'Sortir';
+  if (s.indexOf('OPPORTUNITÉ') >= 0)   return 'Signaux positifs';
+  if (s.indexOf('PIÈGE') >= 0)         return 'Préparer sortie';
+  if (s.indexOf('DIVERGENCE') >= 0)    return 'Divergence';
+  if (s.indexOf('NORMAL — Signaux') >= 0) return 'Signaux positifs';
+  if (s.indexOf('PRUDENCE') >= 0)      return 'Préparer sortie';
+  if (s.indexOf('FAVORABLE') >= 0)     return 'Fenêtre d\'entrée';
+  if (s.indexOf('NORMAL') >= 0)        return 'Normal';
+  return '';
 }
-
+  
 function majBarre(ctx) {
   var band = document.getElementById('top-band');
   if (!band) return;
@@ -1239,7 +1238,7 @@ function majBarre(ctx) {
       var gc = signalClasse(ctx.signaux.global);
       var libelleCourt = libelleSignalCourt(ctx.signaux.global);
       items.push('<div class="bi"><span class="bi-lbl">Signal marché</span>'
-        + '<span class="band-sig ' + gc + '"><span class="dot ' + gc + '"></span> ' + libelleCourt + '</span></div>');
+        + '<span class="band-sig"><span class="dot ' + gc + '"></span> ' + libelleCourt + '</span></div>');
     }
   }
 
