@@ -3123,17 +3123,6 @@ function enregistrerPMI(dateISO) {
       libererBouton(lock);
       alert('Erreur : ' + err.message);
     });
-      }
-      // Filet de securite : la dateISO transmise
-      localStorage.setItem('pmi_done_' + dateISO, '1');
-      var m = document.getElementById('pmi-modal');
-      if (m) m.remove();
-      chargerDonnees();
-      console.log('PMI : ' + (res.message || 'mis à jour'));
-    })
-    .catch(function(err){
-      alert('Erreur : ' + err.message);
-    });
 }
 
 // ══════════════════════════════════════
