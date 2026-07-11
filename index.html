@@ -368,6 +368,28 @@ select.tx-input{-webkit-appearance:none;appearance:none}
   margin: 6px 12px;
   border-radius: var(--r-sm);
 }
+
+/* ═══════════════════════════════════════
+   MODAL VERROUILLÉ (formulaire en cours)
+   ═══════════════════════════════════════ */
+.modal-locked {
+  cursor: wait;
+}
+.modal-locked > div,
+.modal-locked .tx-sheet {
+  opacity: 0.75;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.modal-locked button[disabled] {
+  opacity: 1;
+  /* Le bouton "chargement" reste opaque pour rester lisible */
+}
+/* Le bouton en cours de chargement reste 100% opaque et cliquable visuellement */
+.modal-locked > div button:not([disabled]),
+.modal-locked .tx-sheet button:not([disabled]) {
+  pointer-events: auto;
+}
   
 </style>
 
@@ -1165,11 +1187,90 @@ function skeletonCalendrier() {
   html += '</div>';
   return html;
 }
+
+// ═══════════════════════════════════════
+//  VERROUILLAGE FORMULAIRES
+// ═══════════════════════════════════════
+
+var SPINNER_FRAMES = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+
+/**
+ * Verrouille un bouton pendant un fetch :
+ *   - Désactive le clic
+ *   - Anime un spinner Unicode
+ *   - Verrouille aussi l'overlay parent (si présent) : bouton Annuler + clic extérieur
+ * Retourne un contexte à passer à libererBouton() en fin de fetch.
+ */
+function verrouillerBouton(btn, texteAttente) {
+  if (!btn) return null;
+  var ctx = {
+    btn: btn,
+    origHTML: btn.innerHTML,
+    origDisabled: btn.disabled,
+    texte: texteAttente || 'Enregistrement...',
+    frame: 0,
+    overlay: null,
+    boutonsSecondaires: []
+  };
+
+  // Trouver l'overlay parent
+  var el = btn;
+  while (el && el !== document.body) {
+    if (el.classList && (el.classList.contains('tx-overlay') || el.id && (el.id.indexOf('modal') >= 0 || el.id.indexOf('overlay') >= 0))) {
+      ctx.overlay = el;
+      break;
+    }
+    el = el.parentElement;
+  }
+  // Si pas trouvé via parent, chercher les modals connus
+  if (!ctx.overlay) {
+    ['pmi-modal','salons-modal','fomc-modal','opep-modal','tx-overlay','wl-add-overlay'].forEach(function(id) {
+      var m = document.getElementById(id);
+      if (m && m.contains(btn)) ctx.overlay = m;
+    });
+  }
+
+  // Verrouiller l'overlay : neutraliser le clic extérieur + griser
+  if (ctx.overlay) {
+    ctx.origOverlayOnclick = ctx.overlay.onclick;
+    ctx.overlay.onclick = function(e) { e.stopPropagation(); };
+    ctx.overlay.classList.add('modal-locked');
+    // Désactiver tous les autres boutons du modal
+    var btns = ctx.overlay.querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {
+      if (btns[i] !== btn && !btns[i].disabled) {
+        ctx.boutonsSecondaires.push(btns[i]);
+        btns[i].disabled = true;
+      }
+    }
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = SPINNER_FRAMES[0] + ' ' + ctx.texte;
+  ctx.timer = setInterval(function() {
+    ctx.frame = (ctx.frame + 1) % SPINNER_FRAMES.length;
+    btn.innerHTML = SPINNER_FRAMES[ctx.frame] + ' ' + ctx.texte;
+  }, 80);
+
+  return ctx;
+}
+
+function libererBouton(ctx) {
+  if (!ctx || !ctx.btn) return;
+  if (ctx.timer) clearInterval(ctx.timer);
+  ctx.btn.innerHTML = ctx.origHTML;
+  ctx.btn.disabled = ctx.origDisabled;
+  if (ctx.overlay) {
+    ctx.overlay.classList.remove('modal-locked');
+    ctx.overlay.onclick = ctx.origOverlayOnclick || null;
+    ctx.boutonsSecondaires.forEach(function(b) { b.disabled = false; });
+  }
+}
   
 // ══════════════════════════════════════
 //  CHARGEMENT DONNÉES (cache-first)
 // ══════════════════════════════════════
-
+  
 function chargerDonnees() {
   var cache = localStorage.getItem('peaCache');
   if (cache && !peaData) {
@@ -2087,9 +2188,7 @@ function envoyerTransaction() {
   }
 
   var btn = document.getElementById('tx-submit');
-  var origText = btn.textContent;
   btn.textContent = '⏳ En cours...';
-  btn.disabled = true;
 
   var payload = {
     action: 'transaction',
@@ -2104,11 +2203,14 @@ function envoyerTransaction() {
     note: document.getElementById('tx-note').value
   };
 
+  var lock = verrouillerBouton(btn, 'Enregistrement...');
+
   fetch(urlAPI('?action=transaction&payload=' + encodeURIComponent(JSON.stringify(payload))))
     .then(function(r) { return r.text(); })
     .then(function(t) {
       var data;
       try { data = JSON.parse(t); } catch(e) { data = {succes: true}; }
+      libererBouton(lock);
       if (data.succes || !data.erreur) {
         closeTx();
         chartCache = {};
@@ -2116,9 +2218,12 @@ function envoyerTransaction() {
       } else {
         alert(data.message || data.erreur || 'Erreur');
       }
-      btn.textContent = origText;
-      btn.disabled = false;
     })
+    .catch(function(err) {
+      libererBouton(lock);
+      alert('Erreur: ' + err.message);
+    });
+
     .catch(function(err) {
       alert('Erreur: ' + err.message);
       btn.textContent = origText;
@@ -2519,13 +2624,20 @@ function genererCarteSig(sig, traite) {
 function traiterSignal(ticker, date) {
   if (!confirm('Marquer ce signal comme traité ?')) return;
 
+  var btn = event && event.target ? event.target : null;
+  var lock = verrouillerBouton(btn, 'Traitement...');
+
   fetch(urlAPI('?action=traiter_signal&payload=' + encodeURIComponent(JSON.stringify({ticker: ticker, date: date}))))
     .then(function(r) { return r.text(); })
     .then(function(t) {
       try { var d = JSON.parse(t); } catch(e) {}
+      libererBouton(lock);
       chargerDonnees();
     })
-    .catch(function(err) { alert('Erreur: ' + err.message); });
+    .catch(function(err) {
+      libererBouton(lock);
+      alert('Erreur: ' + err.message);
+    });
 }
 
 // --- Ouvrir le formulaire dividende prérempli ---
@@ -2994,19 +3106,32 @@ function enregistrerPMI(dateISO) {
     return;
   }
 
+  var btn = event && event.target ? event.target : document.querySelector('#pmi-modal button.buy, #pmi-modal button:last-of-type');
+  var lock = verrouillerBouton(btn, 'Enregistrement...');
+
   fetch(urlAPI('?action=maj_pmi&payload=' + encodeURIComponent(JSON.stringify(payload))))
     .then(function(r){ return r.json(); })
     .then(function(res){
-      // On marque comme traites tous les evenements PMI passes ou du jour
+      libererBouton(lock);
+      // ... (garde le reste tel quel : marquage done, fermeture modal, etc.)
       var today = new Date().toISOString().substring(0, 10);
       if (typeof calEvents !== 'undefined' && calEvents) {
         calEvents.forEach(function(e) {
           if (!e.type || !e.date) return;
           if (e.type.toLowerCase().indexOf('pmi') < 0) return;
-          if (e.date <= today) {
-            localStorage.setItem('pmi_done_' + e.date, '1');
-          }
+          if (e.date <= today) localStorage.setItem('pmi_done_' + e.date, '1');
         });
+      }
+      localStorage.setItem('pmi_done_' + dateISO, '1');
+      var m = document.getElementById('pmi-modal');
+      if (m) m.remove();
+      chargerDonnees();
+      console.log('PMI : ' + (res.message || 'mis à jour'));
+    })
+    .catch(function(err){
+      libererBouton(lock);
+      alert('Erreur : ' + err.message);
+    });
       }
       // Filet de securite : la dateISO transmise
       localStorage.setItem('pmi_done_' + dateISO, '1');
@@ -3190,20 +3315,26 @@ function enregistrerSalons(dateISO) {
     payload.__relanceAu = relance.toISOString().substring(0,10);
   }
 
+  var btn = event && event.target ? event.target : null;
+  var lock = verrouillerBouton(btn, 'Enregistrement...');
+
   fetch(urlAPI('?action=maj_salons&payload=' + encodeURIComponent(JSON.stringify(payload))))
     .then(function(r){ return r.json(); })
     .then(function(res){
+      libererBouton(lock);
       if (reportes.length === 0) {
         localStorage.setItem('salons_done_' + dateISO, '1');
       }
       var m = document.getElementById('salons-modal');
       if (m) m.remove();
       chargerDonnees();
-      console.log('Salons : ' + (res.nbAjoutes || 0) + ' ligne(s) ajoutee(s). Reportes : ' + reportes.length);
+      console.log('Salons : ' + (res.nbAjoutes || 0) + ' ligne(s) ajoutée(s). Reportés : ' + reportes.length);
     })
     .catch(function(err){
+      libererBouton(lock);
       alert('Erreur : ' + err.message);
     });
+
 }
 
 function ouvrirModaleFOMC(dateISO) {
@@ -3316,9 +3447,13 @@ function enregistrerFOMC(dateISO) {
     payload.__relanceAu = relance.toISOString().substring(0,10);
   }
 
+  var btn = event && event.target ? event.target : null;
+  var lock = verrouillerBouton(btn, 'Enregistrement...');
+
   fetch(urlAPI('?action=maj_fomc&payload=' + encodeURIComponent(JSON.stringify(payload))))
     .then(function(r){ return r.json(); })
     .then(function(res){
+      libererBouton(lock);
       if (manquantes === 0) {
         localStorage.setItem('fomc_done_' + dateISO, '1');
       }
@@ -3328,6 +3463,7 @@ function enregistrerFOMC(dateISO) {
       console.log('FOMC : ' + (res.nbAjoutes || 0) + ' ligne(s) ajoutée(s). Manquantes : ' + manquantes);
     })
     .catch(function(err){
+      libererBouton(lock);
       alert('Erreur : ' + err.message);
     });
 }
@@ -3407,9 +3543,13 @@ function enregistrerOPEP(dateISO) {
     payload.__relanceAu = relance.toISOString().substring(0,10);
   }
 
+  var btn = event && event.target ? event.target : null;
+  var lock = verrouillerBouton(btn, 'Enregistrement...');
+
   fetch(urlAPI('?action=maj_opep&payload=' + encodeURIComponent(JSON.stringify(payload))))
     .then(function(r){ return r.json(); })
     .then(function(res){
+      libererBouton(lock);
       if (d) {
         localStorage.setItem('opep_done_' + dateISO, '1');
       }
@@ -3419,6 +3559,7 @@ function enregistrerOPEP(dateISO) {
       console.log('OPEP+ : ' + (res.nbAjoutes || 0) + ' ligne(s) ajoutée(s). Manquantes : ' + (d ? 0 : 1));
     })
     .catch(function(err){
+      libererBouton(lock);
       alert('Erreur : ' + err.message);
     });
 }
