@@ -2205,6 +2205,7 @@ function envoyerTransaction() {
     note: document.getElementById('tx-note').value
   };
 
+  var btn = document.getElementById('tx-submit');
   var lock = verrouillerBouton(btn, 'Enregistrement...');
 
   fetch(urlAPI('?action=transaction&payload=' + encodeURIComponent(JSON.stringify(payload))))
