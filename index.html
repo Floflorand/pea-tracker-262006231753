@@ -394,6 +394,62 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 /* Espacement entre cartes du portefeuille (aligné sur watchlist) */
 .pocket-block .vc {margin-bottom: 7px;border-radius: var(--r-sm);border: 1px solid var(--border-dim);}
 
+/* ═══════════════════════════════════════
+   TOAST AJOUT WATCHLIST
+   ═══════════════════════════════════════ */
+.wl-toast {
+  position: fixed;
+  bottom: 76px;
+  left: 12px;
+  right: 12px;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg2);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  z-index: 500;
+  box-shadow: 0 4px 20px rgba(0,0,0,.4);
+  font-family: var(--mono);
+  font-size: 12px;
+  animation: wl-toast-in .25s ease-out;
+}
+@keyframes wl-toast-in {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.wl-toast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+.wl-toast-label {
+  font-weight: 600;
+}
+.wl-toast-percent {
+  color: var(--blue);
+}
+.wl-toast-track {
+  width: 100%;
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.wl-toast-fill {
+  height: 100%;
+  background: var(--blue);
+  border-radius: 2px;
+  width: 0;
+  transition: width .3s linear;
+}
+.wl-toast.success .wl-toast-fill { background: var(--green); }
+.wl-toast.error   .wl-toast-fill { background: var(--red); }
+.wl-toast.success .wl-toast-percent { color: var(--green); }
+.wl-toast.error   .wl-toast-percent { color: var(--red); }
+  
 </style>
 
 <!-- Favicons -->
@@ -1273,6 +1329,66 @@ function libererBouton(ctx) {
     }
     ctx.boutonsSecondaires.forEach(function(b) { b.disabled = false; });
   }
+}
+
+// ═══════════════════════════════════════
+//  TOAST AJOUT WATCHLIST (fake progress bar 30s)
+// ═══════════════════════════════════════
+
+var wlAjoutEnCours = false;
+var wlToastTimer = null;
+var wlToastStartTime = null;
+var WL_TOAST_DUREE_MS = 30000; // 30s
+
+function afficherToastAjout(ticker) {
+  masquerToastAjout(); // au cas où un ancien traîne
+
+  var toast = document.createElement('div');
+  toast.id = 'wl-toast';
+  toast.className = 'wl-toast';
+  toast.innerHTML =
+    '<div class="wl-toast-header">' +
+      '<span class="wl-toast-label">Ajout de ' + ticker + ' en cours...</span>' +
+      '<span class="wl-toast-percent">0%</span>' +
+    '</div>' +
+    '<div class="wl-toast-track">' +
+      '<div class="wl-toast-fill"></div>' +
+    '</div>';
+  document.body.appendChild(toast);
+
+  wlToastStartTime = Date.now();
+  // Anim de la barre : 0% → 90% en 30s (linéaire), reste à 90% jusqu'à réception
+  wlToastTimer = setInterval(function() {
+    var elapsed = Date.now() - wlToastStartTime;
+    var pct = Math.min(90, (elapsed / WL_TOAST_DUREE_MS) * 90);
+    var fill = document.querySelector('.wl-toast-fill');
+    var pctEl = document.querySelector('.wl-toast-percent');
+    if (fill) fill.style.width = pct + '%';
+    if (pctEl) pctEl.textContent = Math.round(pct) + '%';
+  }, 300);
+}
+
+function finaliserToastAjout(succes, message) {
+  var toast = document.getElementById('wl-toast');
+  if (!toast) return;
+  if (wlToastTimer) { clearInterval(wlToastTimer); wlToastTimer = null; }
+
+  toast.classList.add(succes ? 'success' : 'error');
+  var fill = toast.querySelector('.wl-toast-fill');
+  var pctEl = toast.querySelector('.wl-toast-percent');
+  var lbl = toast.querySelector('.wl-toast-label');
+  if (fill) fill.style.width = '100%';
+  if (pctEl) pctEl.textContent = succes ? '100%' : 'Erreur';
+  if (lbl) lbl.textContent = message || (succes ? 'Ajouté avec succès' : 'Échec de l\'ajout');
+
+  // Auto-disparition après 3s
+  setTimeout(masquerToastAjout, 3000);
+}
+
+function masquerToastAjout() {
+  if (wlToastTimer) { clearInterval(wlToastTimer); wlToastTimer = null; }
+  var toast = document.getElementById('wl-toast');
+  if (toast) toast.remove();
 }
   
 // ══════════════════════════════════════
@@ -2358,6 +2474,10 @@ function peuplerReferentiels() {
 }
 
 function ouvrirAjoutWL() {
+  if (wlAjoutEnCours) {
+    alert('Un ajout est déjà en cours. Attends qu\'il se termine.');
+    return;
+  }
   document.getElementById('wl-search').value = '';
   document.getElementById('wl-search-results').innerHTML = '';
   document.getElementById('wl-add-form').style.display = 'none';
@@ -2423,16 +2543,17 @@ function selectionnerWL(result) {
 
 function confirmerAjoutWL() {
   if (!wlSelectedResult) return;
+  if (wlAjoutEnCours) {
+    alert('Un ajout est déjà en cours, patiente.');
+    return;
+  }
+
   var secteur = document.getElementById('wl-secteur').value;
   var poche = document.getElementById('wl-poche').value;
   if (!secteur || !poche) {
     alert('Secteur et poche sont obligatoires');
     return;
   }
-
-  var btn = document.getElementById('wl-submit');
-  btn.textContent = '⏳ Ajout en cours...';
-  btn.disabled = true;
 
   var payload = {
     action: 'ajouter_valeur',
@@ -2447,24 +2568,31 @@ function confirmerAjoutWL() {
     etfRef: ''
   };
 
+  var ticker = wlSelectedResult.ticker;
+
+  // Fermer le modal immédiatement pour libérer l'UI
+  fermerAjoutWL();
+
+  // Verrou + toast
+  wlAjoutEnCours = true;
+  afficherToastAjout(ticker);
+
   fetch(urlAPI('?action=ajouter_valeur&payload=' + encodeURIComponent(JSON.stringify(payload))), {redirect:'follow'})
     .then(function(r) { return r.text(); })
     .then(function(t) { try { return JSON.parse(t); } catch(e) { return {succes:true}; } })
     .then(function(data) {
+      wlAjoutEnCours = false;
       if (data.succes) {
-        fermerAjoutWL();
+        finaliserToastAjout(true, ticker + ' ajouté à la watchlist');
         chartCache = {};
         chargerDonnees();
       } else {
-        alert(data.message || 'Erreur');
+        finaliserToastAjout(false, data.message || 'Erreur');
       }
-      btn.textContent = '＋ Ajouter à la watchlist';
-      btn.disabled = false;
     })
     .catch(function(err) {
-      alert('Erreur: ' + err.message);
-      btn.textContent = '＋ Ajouter à la watchlist';
-      btn.disabled = false;
+      wlAjoutEnCours = false;
+      finaliserToastAjout(false, 'Erreur : ' + err.message);
     });
 }
     
