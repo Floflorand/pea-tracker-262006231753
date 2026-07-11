@@ -1232,7 +1232,9 @@ function verrouillerBouton(btn, texteAttente) {
 
   // Verrouiller l'overlay : neutraliser le clic extérieur + griser
   if (ctx.overlay) {
-    ctx.origOverlayOnclick = ctx.overlay.onclick;
+    // Sauvegarder et neutraliser l'attribut onclick HTML
+    ctx.origOnclickAttr = ctx.overlay.getAttribute('onclick');
+    ctx.overlay.removeAttribute('onclick');
     ctx.overlay.onclick = function(e) { e.stopPropagation(); };
     ctx.overlay.classList.add('modal-locked');
     // Désactiver tous les autres boutons du modal
@@ -1262,7 +1264,10 @@ function libererBouton(ctx) {
   ctx.btn.disabled = ctx.origDisabled;
   if (ctx.overlay) {
     ctx.overlay.classList.remove('modal-locked');
-    ctx.overlay.onclick = ctx.origOverlayOnclick || null;
+    ctx.overlay.onclick = null;
+    if (ctx.origOnclickAttr) {
+      ctx.overlay.setAttribute('onclick', ctx.origOnclickAttr);
+    }
     ctx.boutonsSecondaires.forEach(function(b) { b.disabled = false; });
   }
 }
