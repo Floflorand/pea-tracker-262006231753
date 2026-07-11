@@ -1625,6 +1625,15 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
   var eCls = pos.feuEntreprise || signalClasse(ind.signalEntreprise);
   var sLbl = ind.signalSectoriel || '—';
   var eLbl = ind.signalEntreprise || '—';
+  var mCls = 'y';
+  if (peaData && peaData.contexte && peaData.contexte.signaux) mCls = signalClasse(peaData.contexte.signaux.global);
+
+  function pillFeu(cls, lbl) {
+    if (cls === 'g' || cls === 'y' || cls === 'r') {
+      return '<span class="tl-pill ' + cls + '"><span class="td" style="background:var(--' + couleurVar(cls) + ')"></span>' + lbl + '</span>';
+    }
+    return '<span class="tl-pill" style="background:var(--bg3);color:var(--dim);border:1px solid var(--border-dim)">—</span>';
+  }
 
   var stopBar = '';
   if (nomPoche !== 'Stable' && pos.stopLoss && pos.objectif && pos.pru) {
@@ -1688,10 +1697,10 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
     + '<span class="vtick">' + pos.ticker + ' · ' + (pos.secteur || '') + ' · ' + (pos.quantite || 0) + ' actions</span></div>'
     + '<div class="vright"><span class="vcours">' + fmtEuro(pos.cours) + '</span>'
     + '<span class="vvar ' + varC + '">' + varSymb + varVal + '%</span></div></div>'
-    + '<div class="vr2"><span class="pv ' + (pos.pvPct >= 0 ? 'pos' : 'neg') + '">'
-    + fmtPct(pos.pvPct) + ' · ' + (pos.pvEuro >= 0 ? '+' : '') + fmtEuro(pos.pvEuro) + '</span>'
-    + '<div class="spills"><span class="sp ' + sCls + '"><span class="sd" style="background:var(--' + couleurVar(sCls) + ')"></span>Sect. ' + sLbl + '</span>'
-    + '<span class="sp ' + eCls + '"><span class="sd" style="background:var(--' + couleurVar(eCls) + ')"></span>Ent. ' + eLbl + '</span></div></div>'
+    + '<div class="wl-vr2">'
+    + '<span class="corr-badge ' + (pos.pvPct >= 0 ? 'low' : 'high') + '" style="background:' + (pos.pvPct >= 0 ? 'var(--green-bg)' : 'var(--red-bg)') + ';color:' + (pos.pvPct >= 0 ? 'var(--green)' : 'var(--red)') + ';border:1px solid ' + (pos.pvPct >= 0 ? 'var(--green-bdr)' : 'var(--red-bdr)') + '">'
+    + (pos.pvPct >= 0 ? '+' : '') + fmtPct(pos.pvPct) + ' · ' + (pos.pvEuro >= 0 ? '+' : '') + fmtEuro(pos.pvEuro) + '</span>'
+    + '<div class="tl-row">' + pillFeu(mCls, 'Marché') + ' ' + pillFeu(sCls, 'Sect.') + ' ' + pillFeu(eCls, 'Entr.') + '</div></div>'
     + '<div class="vr3">' + stopBar + '</div>'
     + '<div class="vdetail" id="d-' + id + '">'
     + '<div class="chart-embed-controls" id="cc-' + id + '"><div class="chart-ctrl-group">'
