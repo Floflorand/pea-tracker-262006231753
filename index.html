@@ -1397,24 +1397,10 @@ function masquerToastAjout() {
   
 function chargerDonnees() {
   var cache = localStorage.getItem('peaCache');
-  var cacheDate = localStorage.getItem('peaCacheDate');
-
-  // On n'utilise le cache pour un affichage rapide QUE s'il date de plus de 30 min.
-  // Sinon, le fetch API arrivera dans quelques secondes et le double-refresh
-  // provoque un bug de fermeture des cartes ouvertes.
-  var utiliserCache = false;
-  if (cache && !peaData && cacheDate) {
-    var ageMs = Date.now() - new Date(cacheDate).getTime();
-    if (ageMs > 30 * 60 * 1000) {
-      utiliserCache = true;
-    }
-  }
-
-  if (utiliserCache) {
+  if (cache && !peaData) {
     peaData = JSON.parse(cache);
     rafraichirUI(peaData);
   }
-
   fetch(urlAPI(''))
     .then(function(r) { return r.json(); })
     .then(function(data) {
