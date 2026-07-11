@@ -2223,6 +2223,12 @@ function envoyerTransaction() {
       libererBouton(lock);
       alert('Erreur: ' + err.message);
     });
+  
+    .catch(function(err) {
+      alert('Erreur: ' + err.message);
+      btn.textContent = origText;
+      btn.disabled = false;
+    });
 }
 
 // ══════════════════════════════════════
