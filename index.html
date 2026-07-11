@@ -2187,9 +2187,6 @@ function envoyerTransaction() {
     }
   }
 
-  var btn = document.getElementById('tx-submit');
-  btn.textContent = '⏳ En cours...';
-
   var payload = {
     action: 'transaction',
     ticker: ticker,
@@ -2222,12 +2219,6 @@ function envoyerTransaction() {
     .catch(function(err) {
       libererBouton(lock);
       alert('Erreur: ' + err.message);
-    });
-  
-    .catch(function(err) {
-      alert('Erreur: ' + err.message);
-      btn.textContent = origText;
-      btn.disabled = false;
     });
 }
 
