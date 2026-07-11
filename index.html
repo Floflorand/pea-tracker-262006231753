@@ -354,6 +354,20 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 }
 .sk-block { height: 60px; margin-bottom: 8px; }
 .sk-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* Mini skeleton pour graphique (pleine hauteur du container) */
+.sk-chart {
+  height: 100%;
+  min-height: 120px;
+  border-radius: var(--r-sm);
+}
+
+/* Mini skeleton pour section détail (accordéon fermé) */
+.sk-section {
+  height: 40px;
+  margin: 6px 12px;
+  border-radius: var(--r-sm);
+}
   
 </style>
 
@@ -801,26 +815,34 @@ function chargerDetailStableEtInjecter(ticker, cardId, ouvertures) {
   
   function injecter(data) {
     var mc = document.getElementById('mc-' + cardId);
-    if (mc && !mc.innerHTML && data.macro) {
+    if (mc && data.macro) {
       mc.innerHTML = genererSectionMacro(data.macro);
       if (ouvertures.macro) mc.querySelector('.macro-section').classList.add('open');
     }
     var sel = document.getElementById('sel-' + cardId);
-    if (sel && !sel.innerHTML && data.selection) {
+    if (sel && data.selection) {
       sel.innerHTML = genererSectionSelection(data.selection);
       if (ouvertures.sel) sel.querySelector('.macro-section').classList.add('open');
     }
     var tim = document.getElementById('tim-' + cardId);
-    if (tim && !tim.innerHTML && data.timing) {
+    if (tim && data.timing) {
       tim.innerHTML = genererSectionTiming(data.timing);
       if (ouvertures.tim) tim.querySelector('.macro-section').classList.add('open');
     }
     var vet = document.getElementById('vet-' + cardId);
-    if (vet && !vet.innerHTML && data.vetos) {
+    if (vet && data.vetos) {
       vet.innerHTML = genererSectionVetos(data.vetos);
       if (ouvertures.vet) vet.querySelector('.macro-section').classList.add('open');
     }
   }
+
+  // Skeletons pour les 4 sections en attendant les données
+  ['mc', 'sel', 'tim', 'vet'].forEach(function(prefix) {
+    var el = document.getElementById(prefix + '-' + cardId);
+    if (el && !el.innerHTML) {
+      el.innerHTML = '<div class="skeleton sk-section"></div>';
+    }
+  });
   
   if (detailStableCache[ticker]) { injecter(detailStableCache[ticker]); return; }
   
@@ -838,7 +860,7 @@ function chargerDetailCycliqueEtInjecter(ticker, cardId, ouvertures) {
   
   function injecter(data) {
     var mc = document.getElementById('mc-' + cardId);
-    if (mc && !mc.innerHTML && data.macro) {
+    if (mc && data.macro) {
       mc.innerHTML = genererSectionMacro(data.macro);
       if (ouvertures.macro) {
         var s = mc.querySelector('.macro-section');
@@ -847,7 +869,7 @@ function chargerDetailCycliqueEtInjecter(ticker, cardId, ouvertures) {
     }
     
     var cm = document.getElementById('cm-' + cardId);
-    if (cm && !cm.innerHTML && data.contexteMarche) {
+    if (cm && data.contexteMarche) {
       cm.innerHTML = genererSectionContexteMarche(data.contexteMarche);
       if (ouvertures.cm) {
         var s = cm.querySelector('.macro-section');
@@ -856,7 +878,7 @@ function chargerDetailCycliqueEtInjecter(ticker, cardId, ouvertures) {
     }
     
     var cs = document.getElementById('cs-' + cardId);
-    if (cs && !cs.innerHTML && data.creuxSectoriel) {
+    if (cs && data.creuxSectoriel) {
       cs.innerHTML = genererSectionCreuxSectoriel(data.creuxSectoriel);
       if (ouvertures.cs) {
         var s = cs.querySelector('.macro-section');
@@ -865,7 +887,7 @@ function chargerDetailCycliqueEtInjecter(ticker, cardId, ouvertures) {
     }
     
     var vv = document.getElementById('vv-' + cardId);
-    if (vv && !vv.innerHTML && data.validationValeur) {
+    if (vv && data.validationValeur) {
       vv.innerHTML = genererSectionValidationValeur(data.validationValeur);
       if (ouvertures.vv) {
         var s = vv.querySelector('.macro-section');
@@ -874,7 +896,7 @@ function chargerDetailCycliqueEtInjecter(ticker, cardId, ouvertures) {
     }
     
     var ss = document.getElementById('ss-' + cardId);
-    if (ss && !ss.innerHTML && data.sizingSortie) {
+    if (ss && data.sizingSortie) {
       ss.innerHTML = genererSectionSizingSortie(data.sizingSortie);
       if (ouvertures.ss) {
         var s = ss.querySelector('.macro-section');
@@ -882,6 +904,13 @@ function chargerDetailCycliqueEtInjecter(ticker, cardId, ouvertures) {
       }
     }
   }
+
+  ['mc', 'cm', 'cs', 'vv', 'ss'].forEach(function(prefix) {
+  var el = document.getElementById(prefix + '-' + cardId);
+  if (el && !el.innerHTML) {
+    el.innerHTML = '<div class="skeleton sk-section"></div>';
+  }
+});
   
   if (detailCycliqueCache[ticker]) {
     injecter(detailCycliqueCache[ticker]);
@@ -902,31 +931,38 @@ function chargerDetailGrowthEtInjecter(ticker, cardId, ouvertures) {
   
   function injecter(data) {
     var mc = document.getElementById('mc-' + cardId);
-    if (mc && !mc.innerHTML && data.macro) {
+    if (mc && data.macro) {
       mc.innerHTML = genererSectionMacro(data.macro);
       if (ouvertures.macro) mc.querySelector('.macro-section').classList.add('open');
     }
     var cro = document.getElementById('cro-' + cardId);
-    if (cro && !cro.innerHTML && data.croissance) {
+    if (cro && data.croissance) {
       cro.innerHTML = genererSectionCroissance(data.croissance);
       if (ouvertures.cro) cro.querySelector('.macro-section').classList.add('open');
     }
     var sol = document.getElementById('sol-' + cardId);
-    if (sol && !sol.innerHTML && data.solidite) {
+    if (sol && data.solidite) {
       sol.innerHTML = genererSectionSolidite(data.solidite);
       if (ouvertures.sol) sol.querySelector('.macro-section').classList.add('open');
     }
     var val = document.getElementById('val-' + cardId);
-    if (val && !val.innerHTML && data.valorisation) {
+    if (val && data.valorisation) {
       val.innerHTML = genererSectionValorisation(data.valorisation);
       if (ouvertures.val) val.querySelector('.macro-section').classList.add('open');
     }
     var cat = document.getElementById('cat-' + cardId);
-    if (cat && !cat.innerHTML && data.catalyseurElig) {
+    if (cat && data.catalyseurElig) {
       cat.innerHTML = genererSectionCatalyseurElig(data.catalyseurElig);
       if (ouvertures.cat) cat.querySelector('.macro-section').classList.add('open');
     }
   }
+
+  ['mc', 'cro', 'sol', 'val', 'cat'].forEach(function(prefix) {
+    var el = document.getElementById(prefix + '-' + cardId);
+    if (el && !el.innerHTML) {
+      el.innerHTML = '<div class="skeleton sk-section"></div>';
+    }
+  });
   
   if (detailGrowthCache[ticker]) { injecter(detailGrowthCache[ticker]); return; }
   
@@ -1772,7 +1808,7 @@ function chargerGraphiqueEmbed(ticker, id, range, type) {
     return;
   }
 
-  container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-family:var(--mono);font-size:11px">⏳</div>';
+  container.innerHTML = '<div class="skeleton sk-chart"></div>';
   fetch(urlAPI('?action=historique&ticker=' + encodeURIComponent(ticker) + '&range=' + range))
     .then(function(r) { return r.json(); })
     .then(function(data) {
