@@ -303,9 +303,6 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 .macro-section.open .macro-hdr-chevron{transform:rotate(180deg)}
 .macro-body{display:none;padding:8px 0}
 .macro-section.open .macro-body{display:block}
-.macro-row{display:grid;grid-template-columns:30px 1fr 70px 65px;align-items:center;padding:7px 12px;font-size:11px;font-family:var(--mono);border-bottom:1px solid var(--border-dim)}
-.macro-row:last-child{border-bottom:none}
-.macro-imp{display:inline-block;font-size:9px;color:var(--dim);text-align:left;letter-spacing:1px}
 .macro-label{color:var(--muted);padding-right:8px}
 .macro-val{font-weight:700;text-align:center}
 .macro-val.g{color:var(--green)}
@@ -1085,14 +1082,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (hFr >= 24) hFr -= 24;
     var m = now.getUTCMinutes();
     if (hFr === 18 && m >= 40 && m <= 41) {
-      macroCache = {};
       chartCache = {};
-      cmCache = {};
-      csCache = {};
-      vvCache = {};
-      ssCache = {};
+      detailStableCache = {};
       detailCycliqueCache = {};
-            console.log('📊 Cache graphiques vidé (18h40)');
+      detailGrowthCache = {};
+      console.log('📊 Cache graphiques vidé (18h40)');
     }
   }, 30 * 1000);
   ['tx-qty','tx-price'].forEach(function(id) {
@@ -1406,7 +1400,6 @@ function chargerDonnees() {
     .then(function(data) {
       peaData = data;
       localStorage.setItem('peaCache', JSON.stringify(data));
-      localStorage.setItem('peaCacheDate', new Date().toISOString());
       rafraichirUI(data);
       prechargerGraphiques();
       if (calTickers.length === 0) {
