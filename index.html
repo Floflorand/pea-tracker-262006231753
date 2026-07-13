@@ -1075,20 +1075,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (elCal) elCal.innerHTML = skeletonCalendrier();
   chargerDonnees();
   planifierRefreshQuotidien();
-  // Vider le cache graphiques à 18h40 heure française (UTC+2)
-  setInterval(function() {
-    var now = new Date();
-    var hFr = now.getUTCHours() + 2;
-    if (hFr >= 24) hFr -= 24;
-    var m = now.getUTCMinutes();
-    if (hFr === 18 && m >= 40 && m <= 41) {
-      chartCache = {};
-      detailStableCache = {};
-      detailCycliqueCache = {};
-      detailGrowthCache = {};
-      console.log('📊 Cache graphiques vidé (18h40)');
-    }
-  }, 30 * 1000);
+  planifierViderCache();
   ['tx-qty','tx-price'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.addEventListener('input', function() {
@@ -1435,6 +1422,33 @@ function planifierRefreshQuotidien() {
   }, delai);
 }
 
+/**
+ * Planifie le vidage des caches graphiques et détails tous les jours à 18h40 heure Paris.
+ * S'auto-replanifie après chaque exécution.
+ */
+function planifierViderCache() {
+  var now = new Date();
+  var cible = new Date();
+  cible.setHours(18, 40, 0, 0);
+
+  // Si 18h40 est déjà passé aujourd'hui, on programme pour demain
+  if (now >= cible) {
+    cible.setDate(cible.getDate() + 1);
+  }
+
+  var delai = cible.getTime() - now.getTime();
+
+  setTimeout(function() {
+    chartCache = {};
+    detailStableCache = {};
+    detailCycliqueCache = {};
+    detailGrowthCache = {};
+    console.log('📊 Cache graphiques vidé (18h40)');
+    // Reprogrammer pour le lendemain
+    planifierViderCache();
+  }, delai);
+}
+  
 function rafraichirUI(data) {
   // Sauvegarder uniquement la position de scroll
   var scrollPos = window.scrollY;
