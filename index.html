@@ -1107,6 +1107,45 @@ function switchTab(id, btn) {
 }
 
 // ── OUVERTURE / FERMETURE CARTES ──────
+function ouvrirCarteInterne(card, options) {
+  options = options || {};
+  var detail = card.querySelector('.vdetail');
+  if (!detail) return;
+  card.classList.add('open');
+  detail.classList.add('open');
+
+  var chartEl = detail.querySelector('.chart-embed');
+  if (chartEl) {
+    var cid = chartEl.id.replace('ce-', '');
+    var tickEl = card.querySelector('.vtick');
+    if (tickEl) {
+      var tk = tickEl.textContent.split('·')[0].trim();
+      chargerGraphiqueEmbed(tk, cid, '3mo', 'line');
+    }
+  }
+
+  var mcContainerCheck = detail.querySelector('.mc-container, .macro-container');
+  if (mcContainerCheck) {
+    var tickEl = card.querySelector('.vtick');
+    if (tickEl) {
+      var tk = tickEl.textContent.split('·')[0].trim();
+      var idCarte = card.id.replace('c-', '');
+      var pocheClass = card.className;
+      if (pocheClass.indexOf('pocket-s') >= 0) {
+        chargerDetailStableEtInjecter(tk, idCarte);
+      } else if (pocheClass.indexOf('pocket-c') >= 0) {
+        chargerDetailCycliqueEtInjecter(tk, idCarte);
+      } else if (pocheClass.indexOf('pocket-g') >= 0) {
+        chargerDetailGrowthEtInjecter(tk, idCarte);
+      }
+    }
+  }
+
+  if (!options.silencieux) {
+    setTimeout(function() { card.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 60);
+  }
+}
+
 function toggleCard(id) {
   var card = document.getElementById(id);
   if (!card) return;
@@ -1127,43 +1166,30 @@ function toggleCard(id) {
     card.classList.remove('open');
     detail.classList.remove('open');
   } else {
-    card.classList.add('open');
-    detail.classList.add('open');
-    var chartEl = detail.querySelector('.chart-embed');
-    if (chartEl) {
-      var cid = chartEl.id.replace('ce-', '');
-      var tickEl = card.querySelector('.vtick');
-      if (tickEl) {
-        var tk = tickEl.textContent.split('·')[0].trim();
-        chargerGraphiqueEmbed(tk, cid, '3mo', 'line');
-      }
-    }
-
-    var mcContainerCheck = detail.querySelector('.mc-container, .macro-container');
-    if (mcContainerCheck) {
-      var tickEl = card.querySelector('.vtick');
-      if (tickEl) {
-        var tk = tickEl.textContent.split('·')[0].trim();
-        var idCarte = card.id.replace('c-', '');
-    
-        // Détecter la poche depuis la carte
-        var pocheClass = card.className;
-        if (pocheClass.indexOf('pocket-s') >= 0) {
-          chargerDetailStableEtInjecter(tk, idCarte);
-        } else if (pocheClass.indexOf('pocket-c') >= 0) {
-          chargerDetailCycliqueEtInjecter(tk, idCarte);
-        } else if (pocheClass.indexOf('pocket-g') >= 0) {
-          chargerDetailGrowthEtInjecter(tk, idCarte);
-        }
-      }
-    }
-    
-    setTimeout(function() { card.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 60);
+    ouvrirCarteInterne(card);
   }
   var mcContainer = document.getElementById('mc-' + id);
   if (mcContainer && !mcContainer.innerHTML) {
     mcContainer.innerHTML = genererSectionMacro();
   }
+}
+
+function capturerCartesOuvertes() {
+  var ids = [];
+  document.querySelectorAll('#tab-ptf .vc.open, #tab-wl .vc.open').forEach(function(c) {
+    ids.push(c.id);
+  });
+  return ids;
+}
+
+function restaurerCartesOuvertes(ids) {
+  if (!ids || !ids.length) return;
+  ids.forEach(function(id) {
+    var card = document.getElementById(id);
+    if (card && !card.classList.contains('open')) {
+      ouvrirCarteInterne(card, {silencieux: true});
+    }
+  });
 }
 
 // ═══════════════════════════════════════
@@ -1452,8 +1478,9 @@ function planifierViderCache() {
 }
   
 function rafraichirUI(data) {
-  // Sauvegarder uniquement la position de scroll
+  // Sauvegarder la position de scroll + les cartes ouvertes
   var scrollPos = window.scrollY;
+  var cartesOuvertes = capturerCartesOuvertes();
 
   if (data.contexte) majBarre(data.contexte);
   if (data.portefeuille) majPortefeuille(data.portefeuille, data.indicateurs, data.fondamentaux);
@@ -1464,6 +1491,8 @@ function rafraichirUI(data) {
     majCalendrierTest(data.calendrier);
     majBadgeCalendrier(data.calendrier);
   }
+
+  restaurerCartesOuvertes(cartesOuvertes);
 
   // Modal "Ajouter une valeur"
   if (wlModalOuvert) {
