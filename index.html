@@ -278,6 +278,11 @@ select.tx-input{-webkit-appearance:none;appearance:none}
 .wl-sr-name{font-size:13px;font-weight:600;color:var(--text)}
 .wl-sr-tick{font-size:10px;font-family:var(--mono);color:var(--dim)}
 .wl-sr-right{font-size:9px;font-family:var(--mono);color:var(--dim);text-align:right}
+.wl-star{cursor:pointer;margin-left:6px;font-size:13px;user-select:none}
+.wl-note-block{margin:10px 0;padding:8px 10px;background:var(--bg3);border:1px solid var(--border-dim);border-radius:var(--r-sm)}
+.wl-note-label{font-size:9px;font-family:var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.wl-note-input{width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--border-dim);border-radius:var(--r-sm);color:var(--text);font-family:inherit;font-size:12px;padding:8px;resize:vertical;min-height:50px}
+.wl-note-save{margin-top:6px;width:100%;padding:8px;border:1px solid var(--blue-bdr);background:var(--blue-bg);color:var(--blue);border-radius:var(--r-sm);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
 .wl-poche-badge{display:inline-flex;align-items:center;gap:3px;font-size:8px;font-family:var(--mono);font-weight:600;padding:2px 6px;border-radius:3px;margin-left:6px}
 .wl-poche-badge.s{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-bdr)}
 .wl-poche-badge.c{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-bdr)}
@@ -1925,11 +1930,14 @@ function majWatchlist(wl, indic, fonda) {
     if (countEl) countEl.textContent = wl.length;
 
     var compteurs = compteursServ || { all: wl.length, enter: 0, watch: 0, hunter: 0, neutral: 0, blocked: 0, wait: 0 };
+    var nbFavoris = 0;
+    for (var fi2 = 0; fi2 < wl.length; fi2++) { if (wl[fi2].favori) nbFavoris++; }
 
     // Mettre à jour le select
     if (sel) {
       sel.innerHTML = ''
         + '<option value="all">Tous (' + compteurs.all + ')</option>'
+        + '<option value="favoris">⭐ Favoris (' + nbFavoris + ')</option>'
         + '<option value="enter">🟢 Entrer (' + compteurs.enter + ')</option>'
         + '<option value="hunter">🎯 Chasseur (' + compteurs.hunter + ')</option>'
         + '<option value="watch">👁 Surveiller (' + compteurs.watch + ')</option>'
@@ -1947,8 +1955,12 @@ function majWatchlist(wl, indic, fonda) {
     // Filtrer d'abord selon le filtre actuel
     var wlFiltree = [];
     for (var i = 0; i < wl.length; i++) {
-      var resultCls = wl[i].recommandation ? wl[i].recommandation.cls : 'neutral';
-      if (wlFiltreActuel !== 'all' && resultCls !== wlFiltreActuel) continue;
+      if (wlFiltreActuel === 'favoris') {
+        if (!wl[i].favori) continue;
+      } else if (wlFiltreActuel !== 'all') {
+        var resultCls = wl[i].recommandation ? wl[i].recommandation.cls : 'neutral';
+        if (resultCls !== wlFiltreActuel) continue;
+      }
       wlFiltree.push(wl[i]);
     }
 
@@ -2047,7 +2059,8 @@ function genererCarteWL(v, ind, fon) {
 
   var pCls = (v.poche||'').toLowerCase().indexOf('stable')>=0?'pocket-s':(v.poche||'').toLowerCase().indexOf('cycl')>=0?'pocket-c':(v.poche||'').toLowerCase().indexOf('grow')>=0?'pocket-g':'';
   return '<div class="vc ' + acc + ' ' + pCls + '" id="c-' + id + '" onclick="toggleCard(\'c-' + id + '\')">'
-    + '<div class="vr1"><div class="vl"><span class="vname">' + v.nom + '</span>'
+    + '<div class="vr1"><div class="vl"><span class="vname">' + v.nom
+    + '<span class="wl-star" onclick="event.stopPropagation();toggleFavori(\'' + v.ticker + '\',\'' + id + '\')">' + (v.favori ? '⭐' : '☆') + '</span></span>'
     + '<span class="vtick">' + v.ticker + ' · ' + (v.secteur || '') + '</span></div>'
     + '<div class="vright"><span class="vcours">' + fmtEuro(cours) + '</span>'
     + '<span class="vvar ' + varC + '">' + varSymb + varVal + '%</span></div></div>'
@@ -2083,6 +2096,11 @@ function genererCarteWL(v, ind, fon) {
     + ((v.poche || '').toLowerCase().indexOf('grow') >= 0 ? '<div class="sol-container" id="sol-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('grow') >= 0 ? '<div class="val-container" id="val-' + id + '"></div>' : '')
     + ((v.poche || '').toLowerCase().indexOf('grow') >= 0 ? '<div class="cat-container" id="cat-' + id + '"></div>' : '')
+    + '<div class="wl-note-block" onclick="event.stopPropagation()">'
+    + '<div class="wl-note-label">📝 Note</div>'
+    + '<textarea class="wl-note-input" id="note-' + id + '" placeholder="Ex: Acheter le 01/08, jusqu\'au 01/11 max">' + echapperHtml(v.note || '') + '</textarea>'
+    + '<button class="wl-note-save" onclick="enregistrerNote(\'' + v.ticker + '\',\'' + id + '\')">💾 Enregistrer la note</button>'
+    + '</div>'
     + '<div class="detail-actions-row2"><button class="btn-buy-ptf" onclick="event.stopPropagation();openTx(\'Achat\',\'' + v.ticker + '\',\'' + sn + '\')">🛒 Acheter → Ptf</button></div>'
     + '<button class="btn-delete" onclick="event.stopPropagation();supprimerValeur(\'' + v.ticker + '\',\'' + sn + '\')">🗑 Supprimer de la watchlist</button>'
     + '</div></div>';
@@ -2649,6 +2667,54 @@ fetch(urlAPI('?action=supprimer_valeur&payload=' + encodeURIComponent(JSON.strin
     .catch(function(err) { alert('Erreur: ' + err.message); });
 }
 
+function echapperHtml(s) {
+  return (s || '').toString()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function toggleFavori(ticker, id) {
+  var starEl = document.querySelector('#c-' + id + ' .wl-star');
+  var ancien = starEl ? starEl.textContent : '';
+  if (starEl) starEl.textContent = '⏳';
+
+  fetch(urlAPI('?action=toggle_favori&payload=' + encodeURIComponent(JSON.stringify({ticker: ticker}))))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.succes && starEl) starEl.textContent = ancien;
+      chargerDonnees();
+    })
+    .catch(function(err) {
+      if (starEl) starEl.textContent = ancien;
+      alert('Erreur: ' + err.message);
+    });
+}
+
+function enregistrerNote(ticker, id) {
+  var input = document.getElementById('note-' + id);
+  if (!input) return;
+  var note = input.value;
+
+  var btn = event && event.target ? event.target : null;
+  var lock = verrouillerBouton(btn, 'Enregistrement...');
+
+  fetch(urlAPI('?action=maj_note&payload=' + encodeURIComponent(JSON.stringify({ticker: ticker, note: note}))))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      libererBouton(lock);
+      if (data.succes) {
+        chargerDonnees();
+      } else {
+        alert(data.message || 'Erreur');
+      }
+    })
+    .catch(function(err) {
+      libererBouton(lock);
+      alert('Erreur: ' + err.message);
+    });
+}
+  
 // ══════════════════════════════════════
 //  ONGLET SIGNAUX — données live
 // ══════════════════════════════════════
