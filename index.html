@@ -1419,6 +1419,7 @@ function chargerDonnees() {
   fetch(urlAPI(''))
     .then(function(r) { return r.json(); })
     .then(function(data) {
+      appliquerOverridesFavoris(data);
       peaData = data;
       localStorage.setItem('peaCache', JSON.stringify(data));
       rafraichirUI(data);
@@ -1903,6 +1904,7 @@ function genererCarteValeur(pos, ind, fon, pocheClass, nomPoche) {
 // ══════════════════════════════════════
 
 var wlFiltreActuel = 'all';
+var favorisEnAttente = {}; // ticker -> valeur attendue, tant que non confirmée par le serveur
 
 function majWatchlist(wl, indic, fonda) {
   try {
@@ -2676,6 +2678,22 @@ function echapperHtml(s) {
     .replace(/>/g, '&gt;');
 }
 
+function appliquerOverridesFavoris(data) {
+  if (!data || !data.watchlist) return;
+  var items = data.watchlist.items || data.watchlist;
+  if (!Array.isArray(items)) return;
+  for (var i = 0; i < items.length; i++) {
+    var t = items[i].ticker;
+    if (favorisEnAttente.hasOwnProperty(t)) {
+      if (items[i].favori === favorisEnAttente[t]) {
+        delete favorisEnAttente[t]; // le serveur confirme, plus besoin de forcer
+      } else {
+        items[i].favori = favorisEnAttente[t]; // pas encore confirmé, on garde l'état optimiste
+      }
+    }
+  }
+}
+  
 function toggleFavori(ticker, id) {
   if (!peaData || !peaData.watchlist) return;
   var wlItems = peaData.watchlist.items || peaData.watchlist;
@@ -2688,6 +2706,7 @@ function toggleFavori(ticker, id) {
   var etatPrecedent = !!item.favori;
   var nouvelEtat = !etatPrecedent;
   item.favori = nouvelEtat;
+  favorisEnAttente[ticker] = nouvelEtat; // empêche un refresh concurrent d'annuler ce changement
 
   // Si le filtre "Favoris" est actif et qu'on retire l'étoile, la carte doit disparaître immédiatement
   var doitDisparaitre = (wlFiltreActuel === 'favoris' && !nouvelEtat);
@@ -2721,13 +2740,17 @@ function toggleFavori(ticker, id) {
     .then(function(data) {
       terminerSpin();
       if (!data.succes) {
+        delete favorisEnAttente[ticker];
         item.favori = etatPrecedent;
         majWatchlist(peaData.watchlist, peaData.indicateurs, peaData.fondamentaux);
         alert(data.message || 'Erreur lors de la mise à jour du favori');
       }
+      // Si succès : on garde favorisEnAttente[ticker] jusqu'à ce qu'un refresh confirme
+      // la même valeur côté serveur (nettoyage automatique dans appliquerOverridesFavoris)
     })
     .catch(function(err) {
       terminerSpin();
+      delete favorisEnAttente[ticker];
       item.favori = etatPrecedent;
       majWatchlist(peaData.watchlist, peaData.indicateurs, peaData.fondamentaux);
       alert('Erreur: ' + err.message);
