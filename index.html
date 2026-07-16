@@ -3160,73 +3160,76 @@ function selectCalDay(dateISO) {
     sel.style.border = '2px solid var(--blue)';
   }
 
-  // ✅ 3. Mettre à jour le détail (comme avant)
+  // ✅ 3. Mettre à jour le détail (comme avant) + bouton ajout toujours visible
   var div = document.getElementById('cal-detail');
   if (!div) return;
 
   var eventsAffiches = filtrerEvenementsCal(calEvents);
   var ev = eventsAffiches.filter(function(e){ return e.date === dateISO });
 
-  if (!ev.length) {
-    div.innerHTML = 'Aucun événement';
-    return;
-  }
-
   var today = new Date();
   today.setHours(0, 0, 0, 0);
 
   var html = '<b>' + dateISO + '</b><br><br>';
 
-  for (var i = 0; i < ev.length; i++) {
-    var e = ev[i];
+  if (!ev.length) {
+    html += 'Aucun événement<br><br>';
+  } else {
+    for (var i = 0; i < ev.length; i++) {
+      var e = ev[i];
 
-    // Construction du libellé : type + nom entreprise (si présent) + description (si présente)
-    var parts = [];
-    if (e.type)                        parts.push(e.type);
-    if (e.nom && e.nom.trim())         parts.push(e.nom.trim());
-    if (e.description && e.description.trim()) parts.push(e.description.trim());
-    html += '• ' + parts.join(' — ') + '<br>';
+      // Construction du libellé : type + nom entreprise (si présent) + description (si présente)
+      var parts = [];
+      if (e.type)                        parts.push(e.type);
+      if (e.nom && e.nom.trim())         parts.push(e.nom.trim());
+      if (e.description && e.description.trim()) parts.push(e.description.trim());
+      html += '• ' + parts.join(' — ') + '<br>';
 
-    if (e.type && e.type.toLowerCase().indexOf('pmi') >= 0) {
-      var d = new Date(e.date + 'T00:00:00');
-      d.setHours(0, 0, 0, 0);
+      if (e.type && e.type.toLowerCase().indexOf('pmi') >= 0) {
+        var d = new Date(e.date + 'T00:00:00');
+        d.setHours(0, 0, 0, 0);
 
-      if (d <= today) {
-        html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">';
-        html += '<button onclick="ouvrirModalePMI(\'' + e.date + '\')">📊 Mettre à jour PMI</button>';
-        html += '</div>';
+        if (d <= today) {
+          html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">';
+          html += '<button onclick="ouvrirModalePMI(\'' + e.date + '\')">📊 Mettre à jour PMI</button>';
+          html += '</div>';
+        }
       }
-    }
-    if (e.type && e.type.toLowerCase().indexOf('maj dates salons') >= 0) {
-      var dS = new Date(e.date + 'T00:00:00');
-      dS.setHours(0, 0, 0, 0);
-      if (dS <= today) {
-        html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">';
-        html += '<button onclick="ouvrirModaleSalons(\'' + e.date + '\')">🎪 Saisir les dates des salons</button>';
-        html += '</div>';
+      if (e.type && e.type.toLowerCase().indexOf('maj dates salons') >= 0) {
+        var dS = new Date(e.date + 'T00:00:00');
+        dS.setHours(0, 0, 0, 0);
+        if (dS <= today) {
+          html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">';
+          html += '<button onclick="ouvrirModaleSalons(\'' + e.date + '\')">🎪 Saisir les dates des salons</button>';
+          html += '</div>';
+        }
       }
-    }
-    if (e.type && e.type.toLowerCase().indexOf('maj dates fomc') >= 0) {
-      var dF = new Date(e.date + 'T00:00:00');
-      dF.setHours(0, 0, 0, 0);
-      if (dF <= today) {
-        html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">';
-        html += '<button onclick="ouvrirModaleFOMC(\'' + e.date + '\')">🏦 Saisir les dates FOMC</button>';
-        html += '</div>';
+      if (e.type && e.type.toLowerCase().indexOf('maj dates fomc') >= 0) {
+        var dF = new Date(e.date + 'T00:00:00');
+        dF.setHours(0, 0, 0, 0);
+        if (dF <= today) {
+          html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">';
+          html += '<button onclick="ouvrirModaleFOMC(\'' + e.date + '\')">🏦 Saisir les dates FOMC</button>';
+          html += '</div>';
+        }
       }
-    }
-    if (e.type && e.type.toLowerCase().indexOf('maj dates opep') >= 0) {
-      var dO = new Date(e.date + 'T00:00:00');
-      dO.setHours(0, 0, 0, 0);
-      if (dO <= today) {
-        html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">';
-        html += '<button onclick="ouvrirModaleOPEP(\'' + e.date + '\')">🛢️ Saisir les dates OPEP+</button>';
-        html += '</div>';
+      if (e.type && e.type.toLowerCase().indexOf('maj dates opep') >= 0) {
+        var dO = new Date(e.date + 'T00:00:00');
+        dO.setHours(0, 0, 0, 0);
+        if (dO <= today) {
+          html += '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">';
+          html += '<button onclick="ouvrirModaleOPEP(\'' + e.date + '\')">🛢️ Saisir les dates OPEP+</button>';
+          html += '</div>';
+        }
       }
+
+      html += '<br>';
     }
-    
-    html += '<br>';
   }
+
+  html += '<div style="margin-top:6px;">'
+    + '<button onclick="ouvrirModaleAjoutEvenement(\'' + dateISO + '\')" style="background:var(--blue);color:#fff;padding:6px 14px;border:none;border-radius:4px;">＋ Ajouter un événement</button>'
+    + '</div>';
 
   div.innerHTML = html;
 }
@@ -3863,6 +3866,144 @@ function enregistrerOPEP(dateISO) {
     });
 }
 
+function ouvrirModaleAjoutEvenement(dateISO) {
+  var m = document.getElementById('evt-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'evt-modal';
+    m.style.cssText =
+      'position:fixed;inset:0;background:rgba(0,0,0,.6);' +
+      'z-index:9999;display:flex;justify-content:center;align-items:center;' +
+      'padding:16px;overflow-y:auto;';
+    document.body.appendChild(m);
+  }
+
+  var typesStandard = [
+    'Publication des résultats',
+    'Détachement dividende',
+    'Versement dividende',
+    'Réunion BCE',
+    'Publication PMI',
+    'PIB France',
+    'PIB zone euro',
+    'HICP zone euro',
+    'CPI US',
+    'Réunion FOMC',
+    'Réunion OPEP+',
+    'Salon'
+  ];
+
+  var secteurs = (peaData && peaData.referentiels && peaData.referentiels.secteurs) || [];
+  var tickers = calTickers || [];
+
+  var parts = [];
+  parts.push('<div style="background:var(--bg);padding:20px;border-radius:8px;max-width:480px;width:100%;font-size:14px;max-height:90vh;overflow-y:auto;">');
+  parts.push('<h3 style="margin:0 0 12px 0;">Ajouter un événement</h3>');
+
+  parts.push('<div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px;">Catégorie</label>');
+  parts.push('<select id="evt-categorie" style="width:100%;font-size:13px;padding:6px;" onchange="majChampsEvenement()">');
+  parts.push('<option value="ticker">Ticker</option>');
+  parts.push('<option value="macro">Macro</option>');
+  parts.push('<option value="sectoriel">Sectoriel</option>');
+  parts.push('</select></div>');
+
+  parts.push('<div id="evt-ticker-wrap" style="margin-bottom:10px;"><label style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px;">Ticker</label>');
+  parts.push('<select id="evt-ticker" style="width:100%;font-size:13px;padding:6px;"><option value="">— Choisir —</option>');
+  for (var i = 0; i < tickers.length; i++) {
+    parts.push('<option value="' + tickers[i].ticker + '">' + tickers[i].ticker + ' — ' + (tickers[i].nom || '') + '</option>');
+  }
+  parts.push('</select></div>');
+
+  parts.push('<div id="evt-secteur-wrap" style="margin-bottom:10px;display:none;"><label style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px;">Secteur</label>');
+  parts.push('<select id="evt-secteur" style="width:100%;font-size:13px;padding:6px;"><option value="">— Choisir —</option>');
+  for (var j = 0; j < secteurs.length; j++) {
+    parts.push('<option>' + secteurs[j] + '</option>');
+  }
+  parts.push('</select></div>');
+
+  parts.push('<div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px;">Type d\'événement</label>');
+  parts.push('<select id="evt-type" style="width:100%;font-size:13px;padding:6px;" onchange="majTypeAutreEvenement()">');
+  for (var k = 0; k < typesStandard.length; k++) {
+    parts.push('<option>' + typesStandard[k] + '</option>');
+  }
+  parts.push('<option value="__autre__">Autre (préciser)</option>');
+  parts.push('</select></div>');
+
+  parts.push('<div id="evt-autre-wrap" style="margin-bottom:10px;display:none;"><label style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px;">Préciser le type</label>');
+  parts.push('<input id="evt-type-autre" type="text" style="width:100%;font-size:13px;padding:6px;box-sizing:border-box;"></div>');
+
+  parts.push('<div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px;">Date</label>');
+  parts.push('<input id="evt-date" type="date" value="' + dateISO + '" style="width:100%;font-size:13px;padding:6px;box-sizing:border-box;"></div>');
+
+  parts.push('<div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px;">Description (optionnel)</label>');
+  parts.push('<textarea id="evt-description" style="width:100%;font-size:13px;padding:6px;box-sizing:border-box;min-height:50px;"></textarea></div>');
+
+  parts.push('<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">');
+  parts.push('<button onclick="document.getElementById(\'evt-modal\').remove()">Annuler</button>');
+  parts.push('<button onclick="enregistrerEvenementManuel()" style="background:var(--blue);color:#fff;padding:6px 14px;border:none;border-radius:4px;">Ajouter</button>');
+  parts.push('</div>');
+  parts.push('</div>');
+
+  m.innerHTML = parts.join('');
+  majChampsEvenement();
+}
+
+function majChampsEvenement() {
+  var cat = document.getElementById('evt-categorie').value;
+  document.getElementById('evt-ticker-wrap').style.display = (cat === 'ticker') ? 'block' : 'none';
+  document.getElementById('evt-secteur-wrap').style.display = (cat === 'sectoriel') ? 'block' : 'none';
+}
+
+function majTypeAutreEvenement() {
+  var val = document.getElementById('evt-type').value;
+  document.getElementById('evt-autre-wrap').style.display = (val === '__autre__') ? 'block' : 'none';
+}
+
+function enregistrerEvenementManuel() {
+  var categorie  = document.getElementById('evt-categorie').value;
+  var ticker     = document.getElementById('evt-ticker').value;
+  var secteur    = document.getElementById('evt-secteur').value;
+  var type       = document.getElementById('evt-type').value;
+  var typeAutre  = document.getElementById('evt-type-autre').value;
+  var date       = document.getElementById('evt-date').value;
+  var description = document.getElementById('evt-description').value;
+
+  if (categorie === 'ticker' && !ticker) { alert('Choisis un ticker.'); return; }
+  if (categorie === 'sectoriel' && !secteur) { alert('Choisis un secteur.'); return; }
+  if (type === '__autre__' && !typeAutre.trim()) { alert('Précise le type d\'événement.'); return; }
+  if (!date) { alert('La date est obligatoire.'); return; }
+
+  var payload = {
+    categorie: categorie,
+    ticker: ticker,
+    secteur: secteur,
+    type: type,
+    typeAutre: typeAutre,
+    date: date,
+    description: description
+  };
+
+  var btn = event && event.target ? event.target : null;
+  var lock = verrouillerBouton(btn, 'Enregistrement...');
+
+  fetch(urlAPI('?action=ajouter_evenement&payload=' + encodeURIComponent(JSON.stringify(payload))))
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      libererBouton(lock);
+      if (res.succes) {
+        var m = document.getElementById('evt-modal');
+        if (m) m.remove();
+        chargerDonnees();
+      } else {
+        alert(res.message || 'Erreur');
+      }
+    })
+    .catch(function(err) {
+      libererBouton(lock);
+      alert('Erreur: ' + err.message);
+    });
+}
+  
 // ══════════════════════════════════════
 //  FILTRE CALENDRIER PAR TICKER
 // ══════════════════════════════════════
