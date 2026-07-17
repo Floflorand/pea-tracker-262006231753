@@ -2789,7 +2789,165 @@ function enregistrerNote(ticker, id) {
 //  ONGLET SIGNAUX — données live
 // ══════════════════════════════════════
 
-function majSignaux(signaux) {
+var sigFiltreActuel = 'all';
+
+function majSignaux(signauxData) {
+  var tab = document.getElementById('tab-sig');
+  if (!tab) return;
+
+  var cartes = (signauxData && signauxData.cartes) || [];
+  var historique = (signauxData && signauxData.historique) || [];
+
+  // Badge nav : nombre de tickers avec au moins un signal actif
+  var badge = document.querySelector('.nav-badge');
+  if (badge) {
+    if (cartes.length > 0) {
+      badge.textContent = cartes.length;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  if (cartes.length === 0 && historique.length === 0) {
+    tab.innerHTML = '<div class="empty-tab"><span class="e-icon">🚨</span><span class="e-title">Aucun signal</span><span class="e-sub">Tout est calme pour l\'instant.</span></div>';
+    return;
+  }
+
+  var html = '<div class="sig-header"><span class="sig-count">🚨 <span>' + cartes.length + '</span> valeur' + (cartes.length > 1 ? 's' : '') + ' à traiter</span></div>';
+
+  html += '<div class="sig-filters">'
+    + '<button class="sig-filter' + (sigFiltreActuel === 'all' ? ' active' : '') + '" onclick="filterSigTab(\'all\')">Tous</button>'
+    + '<button class="sig-filter' + (sigFiltreActuel === 'entree' ? ' active' : '') + '" onclick="filterSigTab(\'entree\')">🟢 Entrer</button>'
+    + '<button class="sig-filter' + (sigFiltreActuel === 'sortie' ? ' active' : '') + '" onclick="filterSigTab(\'sortie\')">🔴 Sortir</button>'
+    + '</div>';
+
+  var cartesFiltrees = cartes.filter(function(c) {
+    if (sigFiltreActuel === 'entree') return c.hasEntree;
+    if (sigFiltreActuel === 'sortie') return c.hasSortie;
+    return true;
+  });
+
+  if (cartesFiltrees.length === 0) {
+    html += '<div style="opacity:.6;padding:20px;text-align:center">Aucune valeur dans cette catégorie</div>';
+  } else {
+    var couleursPoche = {'Stable':'s','Cyclique':'c','Growth':'g'};
+    var pochesOrd = ['Stable', 'Cyclique', 'Growth'];
+
+    for (var pi = 0; pi < pochesOrd.length; pi++) {
+      var nomPoche = pochesOrd[pi];
+      var pc = couleursPoche[nomPoche] || 's';
+      var cartesPoche = cartesFiltrees.filter(function(c) { return c.poche === nomPoche; });
+      if (cartesPoche.length === 0) continue;
+
+      html += '<div class="pocket-block">'
+        + '<div class="pocket-hdr">'
+        + '<span class="pocket-name ' + pc + '">◆ ' + nomPoche + '</span>'
+        + '<div class="pocket-right"><span class="pocket-pct">' + cartesPoche.length + ' valeur' + (cartesPoche.length > 1 ? 's' : '') + '</span></div>'
+        + '</div>';
+
+      for (var k = 0; k < cartesPoche.length; k++) {
+        html += genererCarteSignalTicker(cartesPoche[k], pc);
+      }
+
+      html += '</div>';
+    }
+  }
+
+  if (historique.length > 0) {
+    html += '<button class="sig-history-toggle" onclick="toggleSigHistory()">📋 Historique (' + historique.length + ') ▼</button>';
+    html += '<div class="sig-history" id="sig-history">';
+    html += '<div class="sig-section-title"><span class="sig-dot" style="background:var(--dim)"></span>Traités</div>';
+    for (var h = 0; h < historique.length; h++) {
+      html += genererCarteHistoriqueSignal(historique[h]);
+    }
+    html += '</div>';
+  }
+
+  tab.innerHTML = html;
+}
+
+function filterSigTab(cat) {
+  sigFiltreActuel = cat;
+  if (peaData && peaData.signaux) {
+    majSignaux(peaData.signaux);
+  }
+}
+
+function genererCarteSignalTicker(carte, pocheClass) {
+  var sn = (carte.nom || '').replace(/'/g, '');
+
+  var lignesHtml = '';
+  for (var i = 0; i < carte.lignes.length; i++) {
+    var l = carte.lignes[i];
+    lignesHtml += '<div class="sig-ligne">'
+      + '<div class="sig-ligne-type">' + l.badgeIcon + (l.virtuel ? ' <span style="color:var(--dim);font-size:9px">(en cours)</span>' : '') + '</div>'
+      + '<div class="sig-ligne-detail">' + l.detail + '</div>'
+      + '</div>';
+  }
+
+  var dividendeLigne = null;
+  for (var j = 0; j < carte.lignes.length; j++) {
+    if (!carte.lignes[j].virtuel && carte.lignes[j].type.toLowerCase().indexOf('dividende') >= 0) {
+      dividendeLigne = carte.lignes[j];
+      break;
+    }
+  }
+
+  var nbReels = carte.lignes.filter(function(l) { return !l.virtuel; }).length;
+  var boutons = '<button class="btn-treat primary" onclick="traiterTousSignaux(\'' + carte.ticker + '\')">✅ Traiter (' + nbReels + ')</button>';
+  if (dividendeLigne) {
+    boutons = '<button class="btn-treat dividend" onclick="ouvrirDividendeSig(\'' + carte.ticker + '\',\'' + sn + '\',\'\')">💰 Enregistrer le dividende</button>' + boutons;
+  }
+
+  return '<div class="vc pocket-' + pocheClass + '" style="cursor:default;margin-bottom:7px;border-radius:var(--r-sm);border:1px solid var(--border-dim)">'
+    + '<div class="vr1"><div class="vl"><span class="vname">' + (carte.nom || carte.ticker) + '</span>'
+    + '<span class="vtick">' + carte.ticker + '</span></div></div>'
+    + '<div class="sig-lignes">' + lignesHtml + '</div>'
+    + '<div class="sig-action-row" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' + boutons + '</div>'
+    + '</div>';
+}
+
+function genererCarteHistoriqueSignal(sig) {
+  var dateStr = sig.date || '';
+  if (dateStr) {
+    var dp = new Date(dateStr);
+    if (!isNaN(dp.getTime())) {
+      var mois = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+      dateStr = dp.getDate() + ' ' + mois[dp.getMonth()];
+    }
+  }
+  var badgeIcon = sig.badgeIcon || sig.type || '—';
+
+  return '<div class="sig-card sig-done">'
+    + '<div class="sig-top"><div class="sig-left"><span class="sig-name">' + (sig.nom || sig.ticker) + '</span>'
+    + '<span class="sig-tick">' + sig.ticker + '</span></div>'
+    + '<span class="sig-date">' + dateStr + '</span></div>'
+    + '<div style="display:flex;align-items:center;justify-content:space-between">'
+    + '<span class="sig-badge done">' + badgeIcon + '</span>'
+    + '<span class="sig-treated-lbl">✅ ' + sig.traite + '</span></div>'
+    + '</div>';
+}
+
+function traiterTousSignaux(ticker) {
+  if (!confirm('Marquer tous les signaux de ' + ticker + ' comme traités ?')) return;
+
+  var btn = event && event.target ? event.target : null;
+  var lock = verrouillerBouton(btn, 'Traitement...');
+
+  fetch(urlAPI('?action=traiter_tous_signaux_ticker&payload=' + encodeURIComponent(JSON.stringify({ticker: ticker}))))
+    .then(function(r) { return r.text(); })
+    .then(function(t) {
+      try { var d = JSON.parse(t); } catch(e) {}
+      libererBouton(lock);
+      chargerDonnees();
+    })
+    .catch(function(err) {
+      libererBouton(lock);
+      alert('Erreur: ' + err.message);
+    });
+}
+  
 // Sauvegarder le filtre actif
   var filtreActif = 'all';
   var ancienBtn = document.querySelector('.sig-filters .sig-filter.active');
