@@ -2894,8 +2894,11 @@ function genererCarteSignalTicker(carte, pocheClass) {
     }
   }
 
-  var nbReels = carte.lignes.filter(function(l) { return !l.virtuel; }).length;
-  var boutons = '<button class="btn-treat primary" onclick="traiterTousSignaux(\'' + carte.ticker + '\')">✅ Traiter (' + nbReels + ')</button>';
+  var nbReels = carte.lignes.filter(function(l) { return !l.virtuel && l.bulkTraitable !== false; }).length;
+  var boutons = '';
+  if (nbReels > 0) {
+    boutons = '<button class="btn-treat primary" onclick="traiterTousSignaux(\'' + carte.ticker + '\')">✅ Traiter (' + nbReels + ')</button>';
+  }
   if (dividendeLigne) {
     boutons = '<button class="btn-treat dividend" onclick="ouvrirDividendeSig(\'' + carte.ticker + '\',\'' + sn + '\',\'\')">💰 Enregistrer le dividende</button>' + boutons;
   }
