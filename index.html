@@ -2903,9 +2903,19 @@ function genererCarteSignalTicker(carte, pocheClass) {
     boutons = '<button class="btn-treat dividend" onclick="ouvrirDividendeSig(\'' + carte.ticker + '\',\'' + sn + '\',\'\')">💰 Enregistrer le dividende</button>' + boutons;
   }
 
+  var dateAffiche = '';
+  if (carte.dateRecente) {
+    var dp = new Date(carte.dateRecente);
+    if (!isNaN(dp.getTime())) {
+      var mois = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+      dateAffiche = dp.getDate() + ' ' + mois[dp.getMonth()];
+    }
+  }
+
   return '<div class="vc pocket-' + pocheClass + '" style="cursor:default;margin-bottom:7px;border-radius:var(--r-sm);border:1px solid var(--border-dim)">'
     + '<div class="vr1"><div class="vl"><span class="vname">' + (carte.nom || carte.ticker) + '</span>'
-    + '<span class="vtick">' + carte.ticker + '</span></div></div>'
+    + '<span class="vtick">' + carte.ticker + '</span></div>'
+    + '<span class="sig-date">' + dateAffiche + '</span></div>'
     + '<div class="sig-lignes">' + lignesHtml + '</div>'
     + '<div class="sig-action-row" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' + boutons + '</div>'
     + '</div>';
